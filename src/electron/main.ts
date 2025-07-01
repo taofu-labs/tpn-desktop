@@ -35,7 +35,11 @@ app.whenReady().then(() => {
 // Global config
 // /////////////////////////////*/
 
-if (app.dock) app.dock.hide();
+if (isDev()) {
+  if (app.dock) app.dock.show();
+} else {
+  if (app.dock) app.dock.hide();
+}
 
 /* ///////////////////////////////
 // Debugging

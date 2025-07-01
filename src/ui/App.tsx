@@ -1,8 +1,9 @@
 import "./App.css";
+import "./types";
 
 function App() {
   const showAlert = () => {
-    alert("This is an alert!");
+    window.electron.test();
   };
 
   const showConfirm = () => {
