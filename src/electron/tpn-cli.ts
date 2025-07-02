@@ -43,26 +43,29 @@ const exec_async = (
     ]);  
   
 // Execute with sudo  
-const exec_sudo_async = (command: string): Promise<string> =>   
-    new Promise((resolve, reject) => {  
-        log(`Executing ${command} by running:`);  
-        log(  
-            `osascript -e "do shell script \\\\"${command}\\\\" with administrator privileges"`  
-        );  
-        const escapedCommand = command.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-            const osascriptCommand = `osascript -e "do shell script \\"${escapedCommand}\\" with administrator privileges"`;
-      log(osascriptCommand);
-        exec(  
-            command,  
-            shell_options,  
-            (error, stdout, stderr) => {  
-                if (error) return reject(error);  
-                if (stderr) return reject(new Error(stderr));  
-                if (stdout) return resolve(stdout);  
-                resolve('');  
-            }  
-        );  
-    });  
+const exec_sudo_async = (command: string) =>
+  new Promise((resolve, reject) => {
+
+    // Properly escape the quotes for osascript
+    const escapedCommand = command.replace(/"/g, '\\"')
+    const osascriptCmd = `osascript -e "do shell script \\"${escapedCommand}\\" with administrator privileges"`
+
+    log(osascriptCmd)
+
+    exec(osascriptCmd, shell_options, (error, stdout, stderr) => {
+      console.log('Raw output:', { error, stdout, stderr })
+
+      if (error) {
+        console.error('Execution error:', error)
+        return reject(error)
+      }
+      if (stderr && stderr.trim()) {
+        console.error('Stderr:', stderr)
+        return reject(new Error(stderr))
+      }
+      return resolve(stdout)
+    })
+  })
   
 export const initialize_tpn = async (): Promise<void> => {  
     try {  
@@ -122,7 +125,7 @@ export const initialize_tpn = async (): Promise<void> => {
                     `TPN needs to apply a backwards incompatible update, to do this it will ask for your password. This should not happen frequently.`  
                 );  
               const setupUrl = 'https://raw.githubusercontent.com/taofu-labs/tpn-cli/main/setup.sh';  
-            const result = await exec_sudo_async(`curl -sS "${setupUrl}" | sh`)
+            const result = await exec_sudo_async(`curl -s https://raw.githubusercontent.com/taofu-labs/tpn-cli/main/setup.sh | bash -s -- $USER`)
             console.log("here xxxx")
             console.log(result)
             log( `Install result success ` )
