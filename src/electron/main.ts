@@ -16,13 +16,13 @@ import { getPreloadPath } from "./pathResolver.js";
 /* ///////////////////////////////
 // Event listeners
 // /////////////////////////////*/
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
       preload: getPreloadPath(),
-    },
+    }
   });
   if (isDev()) {
     mainWindow.loadURL("http://localhost:5123");
