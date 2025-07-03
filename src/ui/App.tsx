@@ -1,5 +1,4 @@
 import "./App.css";
-import "./types";
 
 function App() {
   const showAlert = () => {

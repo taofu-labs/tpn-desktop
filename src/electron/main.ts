@@ -3,6 +3,7 @@ import path from "path";
 import { isDev } from "./util.js";
 import { alert } from "./helpers.js";
 import { getPreloadPath } from "./pathResolver.js";
+import { initialize_tpn } from "./tpn-cli.js";
 
 // import { updateElectronApp } from 'update-electron-app'
 
@@ -20,6 +21,7 @@ app.whenReady().then(async () => {
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
+     show: false,
     webPreferences: {
       preload: getPreloadPath(),
     }
@@ -29,6 +31,12 @@ app.whenReady().then(async () => {
   } else {
     mainWindow.loadFile(path.join(app.getAppPath(), "/dist-react/index.html"));
   }
+   try {  
+    await initialize_tpn();  
+    mainWindow.show(); // Show after TPN is ready  
+  } catch (error) {  
+    console.error('Failed to initialize TPN:', error);  
+  } 
 });
 
 /* ///////////////////////////////
