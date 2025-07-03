@@ -2,7 +2,7 @@ import "./App.css";
 
 function App() {
   const showAlert = () => {
-    window.electron.test();
+    console.log(window.electron.getCountries());
   };
 
   const showConfirm = () => {
