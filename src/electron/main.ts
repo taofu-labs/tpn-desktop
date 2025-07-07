@@ -3,8 +3,9 @@ import path from "path";
 import { isDev } from "./util.js";
 import { alert } from "./helpers.js";
 import { getPreloadPath } from "./pathResolver.js";
-import { initialize_tpn, listCountries, connect } from "./tpn-cli.js";
-import { tpnInterface } from "./tpnInterface.js"
+import { initialize_tpn } from "./tpn-cli.js";
+import { initializeIpcHandlers } from "./ipcHandlers.js";
+import { tpnService } from "./tpnService.js";
 
 // import { updateElectronApp } from 'update-electron-app'
 
@@ -34,7 +35,12 @@ app.whenReady().then(async () => {
     mainWindow.loadFile(path.join(app.getAppPath(), "/dist-react/index.html"));
   }
    try {  
-    let res = await tpnInterface.disconnect();  
+    await initialize_tpn(); 
+
+    initializeIpcHandlers({
+      tpnService
+    })
+
     mainWindow.show(); // Show after TPN is ready  
   } catch (error) {  
     console.error('Failed to initialize TPN:', error);  

@@ -1,6 +1,6 @@
 function App() {
-  const showAlert = () => {
-    console.log(window.electron.getCountries());
+  const showAlert = async () => {
+    console.log(await window.electron.getCountries());
   };
 
   const showConfirm = () => {
