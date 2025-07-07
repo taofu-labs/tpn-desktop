@@ -2,7 +2,7 @@ import { connect, listCountries, checkStatus, disconnect, ConnectionInfo, Status
 
 
 
-export const tpnInterface = {
+export const tpnService = {
   async getCountries(): Promise<string[]> {
     return await listCountries()
   },
