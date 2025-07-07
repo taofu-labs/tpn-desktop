@@ -28,6 +28,7 @@ app.whenReady().then(async () => {
   });
   if (isDev()) {
     mainWindow.loadURL("http://localhost:5123");
+    mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(app.getAppPath(), "/dist-react/index.html"));
   }
