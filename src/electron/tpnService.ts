@@ -1,8 +1,11 @@
-import { connect, listCountries, checkStatus, disconnect, ConnectionInfo, StatusInfo } from './tpn-cli.js'
+import { connect, listCountries, checkStatus, disconnect, ConnectionInfo, StatusInfo, initialize_tpn } from './tpn-cli.js'
 
 
 
 export const tpnService = {
+   async initializeTpn(): Promise<void> {
+    await initialize_tpn()
+  },
   async getCountries(): Promise<string[]> {
     return await listCountries()
   },
