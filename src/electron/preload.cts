@@ -2,7 +2,7 @@ const electron = require("electron");
 
 electron.contextBridge.exposeInMainWorld("electron", {
   // TODO: Add methods to expose to the renderer process
-  getCountries: () => ["Cameroon", "Nigeria"],
+  getCountries: async () => await ipcInvoke('getCountries'),
   selectCountry: (country: string) => console.log(country),
   setLeaseDuration: (duration: string) => console.log(duration),
   connectToCountry: (country: string) => console.log(country),
