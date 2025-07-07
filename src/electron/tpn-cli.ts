@@ -2,6 +2,27 @@ import { app } from 'electron'
 import { exec, ExecOptions, spawn } from 'node:child_process'
 import { log, alert, wait, confirm } from './helpers.js'
 
+export interface ConnectionInfo {
+  connected: boolean
+  currentIP: string
+  leaseEndTime: Date
+  minutesRemaining: number
+}
+
+export interface StatusInfo {
+  connected: boolean
+  currentIP: string
+  leaseEndTime?: Date
+  minutesRemaining?: number
+}
+
+export interface DisconnectInfo {
+  success: boolean
+  previousIP?: string
+  newIP?: string
+  message?: string
+}
+
 const { USER } = process.env
 
 const path_fix =
@@ -15,6 +36,22 @@ const shell_options: ExecOptions = {
 
 const ASYNC_LOG = '/tmp/tpn-async.log'
 const SUDO_ASYNC_LOG = '/tmp/tpn-sudo-async.log'
+
+const checkForErrors = (output: string): void => {
+  const errorPatterns = [
+    /Error: (.+)/, // Catches any "Error: ..." message
+    /Connection failed/, // Connection issues
+  ]
+
+  for (const pattern of errorPatterns) {
+    const match = output.match(pattern)
+    if (match) {
+      // For "Error: message" pattern, use the actual error message
+      const errorMessage = pattern.source.includes('(.+)') ? match[1] : match[0]
+      throw new Error(errorMessage)
+    }
+  }
+}
 
 // Execute without sudo
 const exec_async_no_timeout = (command: string): Promise<string> =>
@@ -139,7 +176,7 @@ export const initialize_tpn = async (): Promise<void> => {
           const wgResult = await exec_async(
             'HOMEBREW_NO_AUTO_UPDATE=1 brew install wireguard-tools',
           )
-          log("WireGuard installed")
+          log('WireGuard installed')
         } catch (e) {
           const error = e as Error
           log('Error installing WireGuard:', error)
@@ -169,7 +206,14 @@ export const initialize_tpn = async (): Promise<void> => {
   }
 }
 
-export const connect = async (country: string = "any") => {
+const extractIP = (output: string): string => {
+  const ipMatch = output.match(/IP address changed from [\d.]+ to ([\d.]+)/)
+  return ipMatch ? ipMatch[1] : ''
+}
+
+export const connect = async (
+  country: string = 'any',
+): Promise<ConnectionInfo> => {
   let command = `${tpn} connect ${country}`
 
   command += ' -f'
@@ -177,37 +221,137 @@ export const connect = async (country: string = "any") => {
 
   log(`Executing command: ${command}`)
 
-  const result = await exec_async(command)
+  const result = await exec_async(command, 15000)
   log(`Update result: `, result)
+
+  if (result) {
+    checkForErrors(result)
+    const leaseMatch: RegExpMatchArray | null = result.match(
+      /lease ends in (\d+) minutes \(([^)]+)\)/,
+    )
+    if (leaseMatch) {
+      const minutes = parseInt(leaseMatch[1])
+      const endTimeStr = leaseMatch[2]
+      const endTime: Date = new Date(endTimeStr)
+      return {
+        connected: true,
+        currentIP: extractIP(result),
+        leaseEndTime: endTime,
+        minutesRemaining: minutes,
+      }
+    }
+  }
+
+  throw new Error('Failed to parse connection info')
 }
 
-export const listCountries = async () => {
+export const listCountries: any = async (): Promise<string[]> => {
   let command = `${tpn} countries`
 
   log(`Executing command: ${command}`)
 
-  const result = await exec_async(command)
-  log(`Update result: `, result)
+  const result = await exec_async(command, 10000, true)
+  log(`Update result: `, typeof result)
+  if (typeof result === 'string') {
+    try {
+      return JSON.parse(result)
+    } catch (e) {
+      log('Failed to parse countries JSON:', e)
+      return []
+    }
+  }
+
+  log('Countries command timed out')
+  return []
 }
 
-export const checkStatus = async () => {
+export const checkStatus = async (): Promise<StatusInfo> => {
   let command = `${tpn} status`
 
   log(`Executing command: ${command}`)
 
   const result = await exec_async(command)
   log(`Update result: `, result)
+  if (result) {
+    checkForErrors(result)
+    // Parse connection status and IP
+    const statusMatch = result.match(
+      /TPN status: (Connected|Disconnected) \(([\d.]+)\)/,
+    )
+    if (statusMatch) {
+      const isConnected = statusMatch[1] === 'Connected'
+      const currentIP = statusMatch[2]
+
+      // If connected, try to parse lease info
+      if (isConnected) {
+        const leaseMatch = result.match(
+          /Lease ends in (\d+) minutes \(([^)]+)\)/,
+        )
+
+        if (leaseMatch) {
+          const minutes = parseInt(leaseMatch[1])
+          const endTimeStr = leaseMatch[2]
+          const endTime = new Date(endTimeStr)
+
+          return {
+            connected: true,
+            currentIP,
+            leaseEndTime: endTime,
+            minutesRemaining: minutes,
+          }
+        }
+
+        // Connected but no lease info found
+        return {
+          connected: true,
+          currentIP,
+        }
+      }
+
+      // Disconnected
+      return {
+        connected: false,
+        currentIP,
+      }
+    }
+  }
+  throw new Error('Failed to parse status info')
 }
 
-export const disconnect = async () => {
+export const disconnect = async (): Promise<DisconnectInfo> => {
   let command = `${tpn} disconnect`
 
   log(`Executing command: ${command}`)
 
   const result = await exec_async(command)
   log(`Update result: `, result)
-}
 
+    if (typeof result === 'string') {
+    checkForErrors(result)
+    
+    // Parse the IP change: "IP changed back from 38.54.29.240 to 80.41.137.152"
+    const ipChangeMatch = result.match(/IP changed back from ([\d.]+) to ([\d.]+)/)
+    
+    if (ipChangeMatch) {
+      return {
+        success: true,
+        previousIP: ipChangeMatch[1], // VPN IP
+        newIP: ipChangeMatch[2],      // Real IP
+        message: 'Successfully disconnected from VPN'
+      }
+    }
+    
+    // If no IP change found but no errors, still consider it successful
+    if (result.includes('Disconnecting TPN')) {
+      return {
+        success: true,
+        message: 'Disconnected from TPN'
+      }
+    }
+  }
+  
+  throw new Error('Failed to disconnect')
+}
 
 export const uninstall_tpn_cli = async (): Promise<boolean> => {
   try {

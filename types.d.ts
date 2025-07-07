@@ -13,3 +13,6 @@ interface Window {
     getLeaseDuration: () => Promise<string>;
   };
 }
+
+
+
