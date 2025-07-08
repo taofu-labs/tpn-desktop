@@ -1,16 +1,16 @@
 type EventPayloadMapping = {
-  getCountries: Array<string>;
-  setLeaseDuration: string;
-  getLeaseDuration: string;
+  getCountries: Promise<string[]>;
+  connectToCountry: Promise<ConnectionInfo>;
+  checkStatus: Promise<string>;
+  disconnect: string;
 };
 
 interface Window {
   electron: {
     getCountries: () => Promise<string[]>;
-    selectCountry: (country: string) => Promise<string>;
-    setLeaseDuration: (duration: string) => Promise<string>;
     connectToCountry: (country: string) => Promise<string>;
-    getLeaseDuration: () => Promise<string>;
+    checkStatus: () => Promise<string>;
+    disconnect: () => Promise<string>;
   };
 }
 
