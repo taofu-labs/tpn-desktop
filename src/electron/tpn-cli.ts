@@ -1,5 +1,6 @@
 import { app } from 'electron'
-import { exec, ExecOptions, spawn } from 'node:child_process'
+import { exec } from 'node:child_process'
+import type { ExecOptions } from 'node:child_process'
 import { log, alert, wait, confirm } from './helpers.js'
 
 export interface ConnectionInfo {
@@ -173,7 +174,7 @@ export const initialize_tpn = async (): Promise<void> => {
 
         // Install WireGuard as regular user (not sudo)
         try {
-          const wgResult = await exec_async(
+          await exec_async(
             'HOMEBREW_NO_AUTO_UPDATE=1 brew install wireguard-tools',
           )
           log('WireGuard installed')
@@ -184,7 +185,7 @@ export const initialize_tpn = async (): Promise<void> => {
           return
         }
       }
-      const result = await exec_sudo_async(
+      await exec_sudo_async(
         `curl -s https://raw.githubusercontent.com/taofu-labs/tpn-cli/main/setup.sh | bash -s -- $USER`,
       )
       await alert(

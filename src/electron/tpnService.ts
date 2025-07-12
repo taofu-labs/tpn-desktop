@@ -1,4 +1,5 @@
-import { connect, listCountries, checkStatus, disconnect, ConnectionInfo, StatusInfo, initialize_tpn } from './tpn-cli.js'
+import { connect, listCountries, checkStatus, disconnect, initialize_tpn } from './tpn-cli.js'
+import type { ConnectionInfo, StatusInfo } from './tpn-cli.js'
 
 interface DisconnectInfo {
   success: boolean;

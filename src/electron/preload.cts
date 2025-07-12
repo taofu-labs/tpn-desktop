@@ -27,12 +27,4 @@ function ipcInvoke<Key extends keyof EventPayloadMapping>(
   return electron.ipcRenderer.invoke(key, payload);
 }
 
-// Generic IPC on function for event listeners
-function ipcOn<Key extends keyof EventPayloadMapping>(
-  key: Key,
-  callback: (payload: EventPayloadMapping[Key]) => void
-) {
-  electron.ipcRenderer.on(key, (_: any, data: EventPayloadMapping[Key]) => {
-    callback(data);
-  });
-}
+
