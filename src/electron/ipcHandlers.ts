@@ -1,4 +1,4 @@
-import { ConnectionInfo, StatusInfo } from "./tpn-cli.js";
+import type { ConnectionInfo, StatusInfo } from "./tpn-cli.js";
 
 interface DisconnectInfo {
   success: boolean;
