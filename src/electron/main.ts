@@ -21,29 +21,29 @@ import { tpnService } from "./tpnService.js";
 // /////////////////////////////*/
 app.whenReady().then(async () => {
   const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
-     show: false,
+    width: 1200,
+    height: 900,
+    show: false,
     webPreferences: {
       preload: getPreloadPath(),
-    }
+    },
   });
   if (isDev()) {
     mainWindow.loadURL("http://localhost:5123");
   } else {
     mainWindow.loadFile(path.join(app.getAppPath(), "/dist-react/index.html"));
   }
-   try {  
-    await initialize_tpn(); 
+  try {
+    await initialize_tpn();
 
     initializeIpcHandlers({
-      tpnService
-    })
+      tpnService,
+    });
 
-    mainWindow.show(); // Show after TPN is ready  
-  } catch (error) {  
-    console.error('Failed to initialize TPN:', error);  
-  } 
+    mainWindow.show(); // Show after TPN is ready
+  } catch (error) {
+    console.error("Failed to initialize TPN:", error);
+  }
 });
 
 /* ///////////////////////////////

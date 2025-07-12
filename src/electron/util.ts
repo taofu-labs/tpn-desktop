@@ -6,13 +6,13 @@ export const isDev = (): boolean => process.env.NODE_ENV === "development";
 
 export function ipcMainHandler<Key extends keyof EventPayloadMapping>(
   key: string,
-  handler: (payload?: string) => EventPayloadMapping[Key]
+  handler: (payload?: string) => Promise<EventPayloadMapping[Key]> | EventPayloadMapping[Key]
 ) {
-  ipcMain.handle(key, (event: Electron.IpcMainInvokeEvent, payload?: string) => {
+  ipcMain.handle(key, async (event: Electron.IpcMainInvokeEvent, payload?: string) => {
     if (event.senderFrame) {
       validateEventFrame(event.senderFrame);
     }
-    return handler(payload);
+    return await handler(payload);
   });
 }
 

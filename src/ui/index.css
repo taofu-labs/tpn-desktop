@@ -2,64 +2,175 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Layout and App Container Styles */
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+.app-bg {
+  min-height: 100vh;
+  min-width: 100vw;
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
 }
 
-button {
+.top-bar {
+  flex-shrink: 0;
+}
+
+.sidebar {
+  flex-shrink: 0;
+}
+
+/* Map Styles */
+.responsive-map {
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  min-width: 100vw;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  min-width: 100vw;
+}
+
+/* Leaflet specific styles */
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100vh !important;
+  min-width: 100vw !important;
+}
+
+.leaflet-pane {
+  z-index: 1;
+}
+
+.leaflet-control {
+  z-index: 2;
+}
+
+/* Map Marker Styles */
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #00bfff;
+  box-shadow: 0 0 6px #00bfff;
+}
+
+.dot-connected {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 16px #22c55e, 0 0 4px #fff;
+  border: 3px solid #fff;
+  animation: pulse-green 1.2s infinite;
+}
+
+@keyframes pulse-green {
+  0% {
+    box-shadow: 0 0 0 0 #22c55e, 0 0 4px #fff;
+  }
+  70% {
+    box-shadow: 0 0 24px 12px rgba(34,197,94,0.4), 0 0 4px #fff;
+  }
+  100% {
+    box-shadow: 0 0 0 0 #22c55e, 0 0 4px #fff;
+  }
+}
+
+/* Custom dark scrollbar for country list */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #232F4B #181A20;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  background: #181A20;
   border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #232F4B;
+  border-radius: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #2a395b;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 768px) {
+  .status-bar {
+    padding: 8px 16px;
   }
-  a:hover {
-    color: #747bff;
+  .logo {
+    font-size: 14px;
   }
-  button {
-    background-color: #f9f9f9;
+  .status {
+    font-size: 12px;
+    padding: 3px 10px;
+  }
+  .leaflet-control-zoom {
+    margin: 8px !important;
+  }
+  .leaflet-control-zoom a {
+    width: 28px !important;
+    height: 28px !important;
+    line-height: 28px !important;
+    font-size: 16px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .status-bar {
+    padding: 6px 12px;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .logo {
+    font-size: 12px;
+  }
+  .status {
+    font-size: 11px;
+    padding: 2px 8px;
+  }
+  .leaflet-control-zoom {
+    margin: 6px !important;
+  }
+  .leaflet-control-zoom a {
+    width: 26px !important;
+    height: 26px !important;
+    line-height: 26px !important;
+    font-size: 14px !important;
+  }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .status-bar {
+    position: relative;
+    padding: 4px 16px;
+  }
+  #map {
+    height: calc(100vh - 40px);
+  }
+}
+
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .dot {
+    width: 10px;
+    height: 10px;
   }
 }
