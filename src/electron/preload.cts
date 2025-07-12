@@ -1,25 +1,38 @@
 const electron = require("electron");
 
+// Expose APIs to renderer process
 electron.contextBridge.exposeInMainWorld("electron", {
-  // TODO: Add methods to expose to the renderer process
-  getCountries: async () => await ipcInvoke('getCountries'),
-  checkStatus: async() => await ipcInvoke('checkStatus'),
-  connectToCountry: async () => await ipcInvoke('connectToCountry'),
-  disconnect: async () => await ipcInvoke('disconnect'),
+  getCountries: async (): Promise<string[]> => {
+    return await ipcInvoke('getCountries');
+  },
+  
+  checkStatus: async (): Promise<StatusInfo> => {
+    return await ipcInvoke('checkStatus');
+  },
+  
+  connectToCountry: async (country: string): Promise<ConnectionInfo> => {
+    return await ipcInvoke('connectToCountry', country);
+  },
+  
+  disconnect: async (): Promise<DisconnectInfo> => {
+    return await ipcInvoke('disconnect');
+  },
 });
 
-
+// Generic IPC invoke function
 function ipcInvoke<Key extends keyof EventPayloadMapping>(
-  key: Key
+  key: Key,
+  payload?: any
 ): Promise<EventPayloadMapping[Key]> {
-  return electron.ipcRenderer.invoke(key);
+  return electron.ipcRenderer.invoke(key, payload);
 }
 
+// Generic IPC on function for event listeners
 function ipcOn<Key extends keyof EventPayloadMapping>(
   key: Key,
   callback: (payload: EventPayloadMapping[Key]) => void
 ) {
-  electron.ipcRenderer.on(key, (_: any, stats: any) => {
-    callback(stats);
+  electron.ipcRenderer.on(key, (_: any, data: EventPayloadMapping[Key]) => {
+    callback(data);
   });
 }
