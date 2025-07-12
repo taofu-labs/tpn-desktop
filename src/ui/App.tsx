@@ -13,21 +13,66 @@ function App() {
   const [connected, setConnected] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
   const [connectionInfo, setConnectionInfo] = useState<ConnectionInfo | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
 
-
+  // Initialize app state on startup
   useEffect(() => {
-    try {
-      const savedCountry = localStorage.getItem('tpn-connected-country');
-      if (savedCountry) {
-        const country = JSON.parse(savedCountry);
-        setSelectedCountry(country);
+    const initializeApp = async () => {
+      try {
+        // Load saved country from localStorage
+        const savedCountry = localStorage.getItem('tpn-connected-country');
+        let country = null;
+        if (savedCountry) {
+          country = JSON.parse(savedCountry);
+          setSelectedCountry(country);
+        }
+
+        // Check current connection status
+        console.log('Checking connection status...');
+        const status = await window.electron.checkStatus();
+        console.log('Status check result:', status);
+        setConnected(status.connected);
+        
+        if (status.connected && status.leaseEndTime && status.minutesRemaining !== undefined) {
+          // Convert StatusInfo to ConnectionInfo
+          const connectionInfo: ConnectionInfo = {
+            connected: status.connected,
+            currentIP: status.currentIP,
+            leaseEndTime: status.leaseEndTime,
+            minutesRemaining: status.minutesRemaining
+          };
+          console.log('Setting connection info:', connectionInfo);
+          setConnectionInfo(connectionInfo);
+          
+          // If we have a saved country, make sure it's set
+          if (country) {
+            setSelectedCountry(country);
+          }
+        } else if (status.connected) {
+          // Connected but no lease info - still set the country if we have it
+          console.log('Connected but no lease info found');
+          setConnectionInfo(null);
+          if (country) {
+            setSelectedCountry(country);
+          }
+        } else {
+          console.log('Not connected, clearing connection info');
+          setConnectionInfo(null);
+        }
+      } catch (error) {
+        console.error('Initialization error:', error);
+        // If status check fails, assume disconnected
+        setConnected(false);
+        setConnectionInfo(null);
+      } finally {
+        setIsInitializing(false);
       }
-    } catch (error) {
-      console.error('Error loading saved country:', error);
-    }
+    };
+
+    initializeApp();
   }, []);
 
-
+  // Save selected country to localStorage
   useEffect(() => {
     if (selectedCountry) {
       localStorage.setItem('tpn-connected-country', JSON.stringify(selectedCountry));
@@ -36,11 +81,15 @@ function App() {
     }
   }, [selectedCountry]);
 
-  // Periodically check connection status
+  // Periodically check connection status (only after initial load)
   useEffect(() => {
+    if (isInitializing) return; // Don't start periodic checks until initial load is complete
+
     const checkStatus = async () => {
       try {
+        console.log('Periodic status check...');
         const status = await window.electron.checkStatus();
+        console.log('Periodic status result:', status);
         setConnected(status.connected);
         if (status.connected && status.leaseEndTime && status.minutesRemaining !== undefined) {
           // Convert StatusInfo to ConnectionInfo
@@ -50,8 +99,10 @@ function App() {
             leaseEndTime: status.leaseEndTime,
             minutesRemaining: status.minutesRemaining
           };
+          console.log('Periodic check - setting connection info:', connectionInfo);
           setConnectionInfo(connectionInfo);
         } else {
+          console.log('Periodic check - no lease info found');
           setConnectionInfo(null);
         }
       } catch (error) {
@@ -59,14 +110,23 @@ function App() {
       }
     };
 
-    // Check status immediately
-    checkStatus();
-
     // Check status every 30 seconds
     const interval = setInterval(checkStatus, 30000);
 
     return () => clearInterval(interval);
-  }, []); 
+  }, [isInitializing]); 
+
+  // Show loading state while initializing
+  if (isInitializing) {
+    return (
+      <div className="app-bg min-h-screen min-w-screen bg-[#232733] text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-xl font-medium mb-4">Initializing TPN...</div>
+          <div className="text-gray-400">Checking connection status</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app-bg min-h-screen min-w-screen bg-[#232733] text-white flex flex-col">
