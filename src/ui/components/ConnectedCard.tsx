@@ -15,6 +15,7 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({ country, setConnected, co
   const [disconnecting, setDisconnecting] = useState(false);
   const [networkSpeeds, setNetworkSpeeds] = useState({ up: 0, down: 0 });
   const [isMeasuring, setIsMeasuring] = useState(false);
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
 
   const handleDisconnect = async () => {
     setDisconnecting(true);
@@ -50,14 +51,38 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({ country, setConnected, co
 
   // Format lease time remaining
   const formatLeaseTime = () => {
-    if (!connectionInfo?.minutesRemaining) return 'Unknown';
+    if (remainingSeconds <= 0) return 'Unknown';
     
-    const hours = Math.floor(connectionInfo.minutesRemaining / 60);
-    const minutes = connectionInfo.minutesRemaining % 60;
-    const seconds = 0; // We don't have seconds from the backend
+    const hours = Math.floor(remainingSeconds / 3600);
+    const minutes = Math.floor((remainingSeconds % 3600) / 60);
+    const seconds = remainingSeconds % 60;
     
     return `${hours}H : ${minutes.toString().padStart(2, '0')}M : ${seconds.toString().padStart(2, '0')}S`;
   };
+
+  // Initialize and update countdown timer
+  useEffect(() => {
+    if (connectionInfo?.minutesRemaining) {
+      // Convert minutes to seconds and set initial value
+      const totalSeconds = connectionInfo.minutesRemaining * 60;
+      setRemainingSeconds(totalSeconds);
+      
+      // Set up countdown timer
+      const timer = setInterval(() => {
+        setRemainingSeconds(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      
+      return () => clearInterval(timer);
+    } else {
+      setRemainingSeconds(0);
+    }
+  }, [connectionInfo?.minutesRemaining]);
 
   // Start speed monitoring when component mounts
   useEffect(() => {

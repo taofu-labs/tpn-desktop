@@ -275,19 +275,34 @@ export const checkStatus = async (): Promise<StatusInfo> => {
   log(`Update result: `, result)
   if (result) {
     checkForErrors(result)
-    // Parse connection status and IP
-    const statusMatch = result.match(
+    // Parse connection status and IP - try multiple patterns
+    let statusMatch = result.match(
       /TPN status: (Connected|Disconnected) \(([\d.]+)\)/,
     )
+    if (!statusMatch) {
+      // Try alternative pattern without parentheses
+      statusMatch = result.match(
+        /TPN status: (Connected|Disconnected) ([\d.]+)/,
+      )
+    }
+    if (!statusMatch) {
+      // Try pattern with different spacing
+      statusMatch = result.match(
+        /TPN status:\s*(Connected|Disconnected)\s*\(?([\d.]+)\)?/,
+      )
+    }
+    log(`Status match: `, statusMatch)
     if (statusMatch) {
       const isConnected = statusMatch[1] === 'Connected'
       const currentIP = statusMatch[2]
+      log(`Is connected: ${isConnected}, IP: ${currentIP}`)
 
       // If connected, try to parse lease info
       if (isConnected) {
         const leaseMatch = result.match(
-          /Lease ends in (\d+) minutes \(([^)]+)\)/,
+          /[Ll]ease ends in (\d+) minutes \(([^)]+)\)/,
         )
+        log(`Lease match: `, leaseMatch)
 
         if (leaseMatch) {
           const minutes = parseInt(leaseMatch[1])
