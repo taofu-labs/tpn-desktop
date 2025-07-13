@@ -1,5 +1,6 @@
 import { app } from 'electron'
-import { exec, ExecOptions, spawn } from 'node:child_process'
+import { exec } from 'node:child_process'
+import type { ExecOptions } from 'node:child_process'
 import { log, alert, wait, confirm } from './helpers.js'
 
 export interface ConnectionInfo {
@@ -173,7 +174,7 @@ export const initialize_tpn = async (): Promise<void> => {
 
         // Install WireGuard as regular user (not sudo)
         try {
-          const wgResult = await exec_async(
+          await exec_async(
             'HOMEBREW_NO_AUTO_UPDATE=1 brew install wireguard-tools',
           )
           log('WireGuard installed')
@@ -184,7 +185,7 @@ export const initialize_tpn = async (): Promise<void> => {
           return
         }
       }
-      const result = await exec_sudo_async(
+      await exec_sudo_async(
         `curl -s https://raw.githubusercontent.com/taofu-labs/tpn-cli/main/setup.sh | bash -s -- $USER`,
       )
       await alert(
@@ -274,19 +275,34 @@ export const checkStatus = async (): Promise<StatusInfo> => {
   log(`Update result: `, result)
   if (result) {
     checkForErrors(result)
-    // Parse connection status and IP
-    const statusMatch = result.match(
+    // Parse connection status and IP - try multiple patterns
+    let statusMatch = result.match(
       /TPN status: (Connected|Disconnected) \(([\d.]+)\)/,
     )
+    if (!statusMatch) {
+      // Try alternative pattern without parentheses
+      statusMatch = result.match(
+        /TPN status: (Connected|Disconnected) ([\d.]+)/,
+      )
+    }
+    if (!statusMatch) {
+      // Try pattern with different spacing
+      statusMatch = result.match(
+        /TPN status:\s*(Connected|Disconnected)\s*\(?([\d.]+)\)?/,
+      )
+    }
+    log(`Status match: `, statusMatch)
     if (statusMatch) {
       const isConnected = statusMatch[1] === 'Connected'
       const currentIP = statusMatch[2]
+      log(`Is connected: ${isConnected}, IP: ${currentIP}`)
 
       // If connected, try to parse lease info
       if (isConnected) {
         const leaseMatch = result.match(
-          /Lease ends in (\d+) minutes \(([^)]+)\)/,
+          /[Ll]ease ends in (\d+) minutes \(([^)]+)\)/,
         )
+        log(`Lease match: `, leaseMatch)
 
         if (leaseMatch) {
           const minutes = parseInt(leaseMatch[1])

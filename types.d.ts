@@ -1,17 +1,56 @@
+// Import types from electron backend
+interface ConnectionInfo {
+  connected: boolean;
+  currentIP: string;
+  leaseEndTime: Date;
+  minutesRemaining: number;
+}
+
+interface StatusInfo {
+  connected: boolean;
+  currentIP: string;
+  leaseEndTime?: Date;
+  minutesRemaining?: number;
+}
+
+interface DisconnectInfo {
+  success: boolean;
+  previousIP?: string;
+  newIP?: string;
+  message?: string;
+}
+
 type EventPayloadMapping = {
-  getCountries: Promise<string[]>;
-  connectToCountry: Promise<ConnectionInfo>;
-  checkStatus: Promise<string>;
-  disconnect: string;
+  getCountries: string[];
+  connectToCountry: ConnectionInfo;
+  checkStatus: StatusInfo;
+  disconnect: DisconnectInfo;
 };
 
 interface Window {
   electron: {
     getCountries: () => Promise<string[]>;
-    connectToCountry: (country: string) => Promise<string>;
-    checkStatus: () => Promise<string>;
-    disconnect: () => Promise<string>;
+    connectToCountry: (country: string) => Promise<ConnectionInfo>;
+    checkStatus: () => Promise<StatusInfo>;
+    disconnect: () => Promise<DisconnectInfo>;
   };
+}
+
+// Leaflet module declaration
+declare module 'leaflet' {
+  export interface DivIconOptions {
+    className?: string;
+    html?: string;
+    iconSize?: [number, number];
+    iconAnchor?: [number, number];
+    popupAnchor?: [number, number];
+  }
+
+  export class DivIcon {
+    constructor(options: DivIconOptions);
+  }
+
+  export const divIcon: (options: DivIconOptions) => DivIcon;
 }
 
 

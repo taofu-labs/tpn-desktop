@@ -1,8 +1,8 @@
 {
-    "appId": "com.deon.tpn-desktop",
+    "appId": "com.taofu.tpn-desktop",
     "productName": "TPN Desktop",
     "copyright": "Copyright © 2025",
-    "icon": "./desktopIcon.png",
+    "icon": "./desktopIcon.jpg",
     "files": [
         "dist-electron",
         "dist-react"
