@@ -1,4 +1,11 @@
-import { ConnectionInfo, StatusInfo } from "./tpn-cli.js";
+import type { ConnectionInfo, StatusInfo } from "./tpn-cli.js";
+
+interface DisconnectInfo {
+  success: boolean;
+  previousIP?: string;
+  newIP?: string;
+  message?: string;
+}
 import { ipcMainHandler } from "./util.js";
 
 export interface IpcServices {
@@ -6,7 +13,7 @@ export interface IpcServices {
     getCountries(): Promise<string[]>;
     connect(country?: string): Promise<ConnectionInfo>;
     checkStatus(): Promise<StatusInfo>;
-    disconnect(): Promise<unknown>; // or whatever disconnect returns
+    disconnect(): Promise<DisconnectInfo>;
   };
 }
 
