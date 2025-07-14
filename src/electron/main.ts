@@ -51,7 +51,6 @@ app.on('before-quit', async () => {
   try {
     // Optionally, you can check if connected before disconnecting
     await tpnService.disconnect();
-    console.log('VPN disconnected on app quit.');
   } catch (err) {
     console.error('Error disconnecting VPN on quit:', err);
   }
