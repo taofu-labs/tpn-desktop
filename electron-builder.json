@@ -15,9 +15,7 @@
     },
     "win": {
         "target": [
-            "nsis",
-            "msi",
-            "portable"
+            "nsis"
         ]
     },
     "linux": {
