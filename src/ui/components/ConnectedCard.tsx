@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { capitalizeWords } from '../utils/countryUtils';
-import { Oval } from 'react-loader-spinner';
-import toast from 'react-hot-toast';
-import { startSpeedMonitoring } from '../utils/networkUtils';
-import { FiUpload, FiDownload } from 'react-icons/fi';
+import React, { useState, useEffect } from "react";
+import { capitalizeWords } from "../utils/countryUtils";
+import { Oval } from "react-loader-spinner";
+import toast from "react-hot-toast";
+import { startSpeedMonitoring } from "../utils/networkUtils";
+import { FiUpload, FiDownload } from "react-icons/fi";
 
 interface ConnectedCardProps {
   country: { name: string; flag: string } | null;
@@ -11,7 +11,11 @@ interface ConnectedCardProps {
   connectionInfo: ConnectionInfo | null;
 }
 
-const ConnectedCard: React.FC<ConnectedCardProps> = ({ country, setConnected, connectionInfo }) => {
+const ConnectedCard: React.FC<ConnectedCardProps> = ({
+  country,
+  setConnected,
+  connectionInfo,
+}) => {
   const [disconnecting, setDisconnecting] = useState(false);
   const [networkSpeeds, setNetworkSpeeds] = useState({ up: 0, down: 0 });
   const [isMeasuring, setIsMeasuring] = useState(false);
@@ -20,20 +24,22 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({ country, setConnected, co
   const handleDisconnect = async () => {
     setDisconnecting(true);
     const disconnectPromise = window.electron.disconnect();
-    
+
     toast.promise(disconnectPromise, {
-      loading: 'Disconnecting from VPN...',
+      loading: "Disconnecting from VPN...",
       success: (result) => {
         if (result.success) {
           setConnected(false);
-          return 'Successfully disconnected from VPN';
+          return "Successfully disconnected from VPN";
         } else {
-          throw new Error('Disconnect failed');
+          throw new Error("Disconnect failed");
         }
       },
       error: (error) => {
-        console.error('Disconnect error:', error);
-        return `Failed to disconnect: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        console.error("Disconnect error:", error);
+        return `Failed to disconnect: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`;
       },
     });
 
@@ -43,7 +49,7 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({ country, setConnected, co
         setConnected(false);
       }
     } catch (error) {
-      console.error('Disconnect error:', error);
+      console.error("Disconnect error:", error);
     } finally {
       setDisconnecting(false);
     }
@@ -51,13 +57,15 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({ country, setConnected, co
 
   // Format lease time remaining
   const formatLeaseTime = () => {
-    if (remainingSeconds <= 0) return 'Unknown';
-    
+    if (remainingSeconds <= 0) return "Unknown";
+
     const hours = Math.floor(remainingSeconds / 3600);
     const minutes = Math.floor((remainingSeconds % 3600) / 60);
     const seconds = remainingSeconds % 60;
-    
-    return `${hours}H : ${minutes.toString().padStart(2, '0')}M : ${seconds.toString().padStart(2, '0')}S`;
+
+    return `${hours}H : ${minutes.toString().padStart(2, "0")}M : ${seconds
+      .toString()
+      .padStart(2, "0")}S`;
   };
 
   // Initialize and update countdown timer
@@ -66,10 +74,10 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({ country, setConnected, co
       // Convert minutes to seconds and set initial value
       const totalSeconds = connectionInfo.minutesRemaining * 60;
       setRemainingSeconds(totalSeconds);
-      
+
       // Set up countdown timer
       const timer = setInterval(() => {
-        setRemainingSeconds(prev => {
+        setRemainingSeconds((prev) => {
           if (prev <= 1) {
             clearInterval(timer);
             return 0;
@@ -77,12 +85,13 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({ country, setConnected, co
           return prev - 1;
         });
       }, 1000);
-      
+
       return () => clearInterval(timer);
     } else {
       setRemainingSeconds(0);
+      window.electron.disconnect().then(() => setConnected(false));
     }
-  }, [connectionInfo?.minutesRemaining]);
+  }, [connectionInfo?.minutesRemaining, setConnected]);
 
   // Start speed monitoring when component mounts
   useEffect(() => {
@@ -92,7 +101,7 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({ country, setConnected, co
         setNetworkSpeeds({ up: speeds.upload, down: speeds.download });
         setIsMeasuring(false);
       }, 30000); // Measure every 30 seconds
-      
+
       return stopMonitoring;
     }
   }, [connectionInfo?.connected]);
@@ -106,26 +115,34 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({ country, setConnected, co
       <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></div>
       {/* TPN logo and stats */}
       <div className="flex items-center gap-3">
-        <img src="/src/ui/assets/tpn-logo.png" alt="TPN Logo" className="h-6 sm:h-8 w-auto" />
+        <img
+          src="/src/ui/assets/tpn-logo.png"
+          alt="TPN Logo"
+          className="h-6 sm:h-8 w-auto"
+        />
         <div className="ml-auto flex gap-2">
           <span className="bg-[#232F4B] text-blue-300 text-xs px-2 py-1 rounded font-mono flex items-center gap-1">
             <FiUpload className="w-3 h-3" />
-            {isMeasuring ? '...' : `${networkSpeeds.up.toFixed(1)}M`}
+            {isMeasuring ? "..." : `${networkSpeeds.up.toFixed(1)}M`}
           </span>
           <span className="bg-[#232F4B] text-blue-300 text-xs px-2 py-1 rounded font-mono flex items-center gap-1">
             <FiDownload className="w-3 h-3" />
-            {isMeasuring ? '...' : `${networkSpeeds.down.toFixed(1)}M`}
+            {isMeasuring ? "..." : `${networkSpeeds.down.toFixed(1)}M`}
           </span>
         </div>
       </div>
       {/* Connected status */}
       <div className="flex items-center gap-2 mt-2">
         <span className="h-3 w-3 rounded-full bg-green-400 inline-block"></span>
-        <span className="text-xs sm:text-sm text-gray-300">Currently connected to</span>
+        <span className="text-xs sm:text-sm text-gray-300">
+          Currently connected to
+        </span>
       </div>
       <div className="flex items-center gap-2 mb-2">
         <span className="text-xl sm:text-2xl">{country?.flag}</span>
-        <span className="font-bold text-base sm:text-lg">{country?.name ? capitalizeWords(country.name) : ''}</span>
+        <span className="font-bold text-base sm:text-lg">
+          {country?.name ? capitalizeWords(country.name) : ""}
+        </span>
       </div>
       {/* IP Address */}
       {connectionInfo?.currentIP && (
@@ -137,7 +154,9 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({ country, setConnected, co
       <div className="flex items-center gap-2 text-gray-300 text-xs sm:text-sm mb-2">
         <span>⏳ Lease time remaining</span>
       </div>
-      <div className="text-lg sm:text-2xl font-mono text-blue-200 mb-2">{formatLeaseTime()}</div>
+      <div className="text-lg sm:text-2xl font-mono text-blue-200 mb-2">
+        {formatLeaseTime()}
+      </div>
       {/* Disconnect button */}
       <button
         className="w-full py-2 rounded bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs sm:text-sm tracking-wide transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
@@ -153,7 +172,7 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({ country, setConnected, co
               wrapperStyle={{}}
               wrapperClass=""
               visible={true}
-              ariaLabel='disconnecting'
+              ariaLabel="disconnecting"
               secondaryColor="#ffffff"
               strokeWidth={2}
               strokeWidthSecondary={2}
@@ -161,7 +180,7 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({ country, setConnected, co
             DISCONNECTING...
           </>
         ) : (
-          'DISCONNECT NOW'
+          "DISCONNECT NOW"
         )}
       </button>
     </div>
