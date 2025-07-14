@@ -30,7 +30,6 @@ function App() {
         // Check current connection status
         console.log('Checking connection status...');
         const status = await window.electron.checkStatus();
-        console.log('Status check result:', status);
         setConnected(status.connected);
         
         if (status.connected && status.leaseEndTime && status.minutesRemaining !== undefined) {
@@ -41,7 +40,6 @@ function App() {
             leaseEndTime: status.leaseEndTime,
             minutesRemaining: status.minutesRemaining
           };
-          console.log('Setting connection info:', connectionInfo);
           setConnectionInfo(connectionInfo);
           
           // If we have a saved country, make sure it's set
@@ -89,7 +87,6 @@ function App() {
       try {
         console.log('Periodic status check...');
         const status = await window.electron.checkStatus();
-        console.log('Periodic status result:', status);
         setConnected(status.connected);
         if (status.connected && status.leaseEndTime && status.minutesRemaining !== undefined) {
           // Convert StatusInfo to ConnectionInfo
@@ -99,7 +96,7 @@ function App() {
             leaseEndTime: status.leaseEndTime,
             minutesRemaining: status.minutesRemaining
           };
-          console.log('Periodic check - setting connection info:', connectionInfo);
+
           setConnectionInfo(connectionInfo);
         } else {
           console.log('Periodic check - no lease info found');

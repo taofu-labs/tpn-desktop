@@ -3,7 +3,6 @@ interface SpeedTestResult {
   upload: number;   // Mbps
 }
 
-
 export const measureNetworkSpeed = async (): Promise<SpeedTestResult> => {
   const testFileSize = 10 * 1024 * 1024; // 10MB test file
   const testUrl = 'https://speed.cloudflare.com/__down?bytes=' + testFileSize;
@@ -66,4 +65,4 @@ export const startSpeedMonitoring = (
   return () => {
     isRunning = false;
   };
-}; 
+};
