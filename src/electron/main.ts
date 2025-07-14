@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, dialog } from "electron";
 import path from "path";
 import { isDev } from "./util.js";
 import { alert } from "./helpers.js";
@@ -6,45 +6,78 @@ import { getPreloadPath } from "./pathResolver.js";
 import { initialize_tpn } from "./tpn-cli.js";
 import { initializeIpcHandlers } from "./ipcHandlers.js";
 import { tpnService } from "./tpnService.js";
+import { autoUpdater } from 'electron-updater'
 
-// import { updateElectronApp } from 'update-electron-app'
-
-// // Enable auto-updates
-// updateElectronApp( {
-//     logger: {
-//         log: ( ...data ) => log.info( '[ update-electron-app ]', ...data )
-//     }
-// } )
 
 /* ///////////////////////////////
 // Event listeners
 // /////////////////////////////*/
 app.whenReady().then(async () => {
   const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
-     show: false,
+    width: 1200,
+    height: 900,
+    show: false,
     webPreferences: {
       preload: getPreloadPath(),
-    }
+    },
   });
   if (isDev()) {
     mainWindow.loadURL("http://localhost:5123");
   } else {
     mainWindow.loadFile(path.join(app.getAppPath(), "/dist-react/index.html"));
+    autoUpdater.checkForUpdatesAndNotify(); 
   }
-   try {  
-    await initialize_tpn(); 
+  try {
+    await initialize_tpn();
 
     initializeIpcHandlers({
-      tpnService
-    })
+      tpnService,
+    });
 
-    mainWindow.show(); // Show after TPN is ready  
-  } catch (error) {  
-    console.error('Failed to initialize TPN:', error);  
-  } 
+    mainWindow.show(); // Show after TPN is ready
+  } catch (error) {
+    console.error("Failed to initialize TPN:", error);
+  }
 });
+
+// Ensure VPN disconnects when app closes
+app.on('before-quit', async () => {
+  try {
+    // Optionally, you can check if connected before disconnecting
+    await tpnService.disconnect();
+  } catch (err) {
+    console.error('Error disconnecting VPN on quit:', err);
+  }
+});
+
+// Auto Updater Events
+autoUpdater.on('update-available', () => {
+  dialog.showMessageBox({
+    type: 'info',
+    title: 'Update Available',
+    message: 'A new update is being downloaded.',
+  });
+});
+
+autoUpdater.on('update-downloaded', () => {
+  dialog
+    .showMessageBox({
+      type: 'info',
+      title: 'Update Ready',
+      message: 'An update is ready. Restart now?',
+      buttons: ['Restart', 'Later'],
+    })
+    .then((result) => {
+      if (result.response === 0) {
+        autoUpdater.quitAndInstall();
+      }
+    });
+});
+
+autoUpdater.on('error', (err) => {
+  console.error('AutoUpdater error:', err);
+});
+
 
 /* ///////////////////////////////
 // Global config
@@ -60,7 +93,7 @@ if (isDev()) {
 // Debugging
 // /////////////////////////////*/
 const debug = false;
-if (debug)
+if (debug){
   app.whenReady().then(async () => {
     await alert(__dirname);
 
@@ -69,3 +102,4 @@ if (debug)
     const { HOME, PATH, USER } = process.env;
     await alert(`HOME: ${HOME}\n\nPATH: ${PATH}\n\nUSER: ${USER}`);
   });
+}
