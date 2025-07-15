@@ -6,8 +6,8 @@ import { getPreloadPath } from "./pathResolver.js";
 import { initialize_tpn } from "./tpn-cli.js";
 import { initializeIpcHandlers } from "./ipcHandlers.js";
 import { tpnService } from "./tpnService.js";
-import { autoUpdater } from 'electron-updater'
-
+import pkg from 'electron-updater';
+const { autoUpdater } = pkg;
 
 /* ///////////////////////////////
 // Event listeners
