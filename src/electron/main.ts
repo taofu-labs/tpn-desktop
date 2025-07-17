@@ -12,7 +12,7 @@ const { autoUpdater } = updater;
 
 /* ///////////////////////////////
 // Event listeners
-// /////////////////////////////*/ß
+// /////////////////////////////*/
 app.whenReady().then(async () => {
   const mainWindow = new BrowserWindow({
     width: 1200,
@@ -22,8 +22,7 @@ app.whenReady().then(async () => {
       preload: getPreloadPath(),
     },
   });
-  
-  try {
+   try {
     await initialize_tpn();
 
     initializeIpcHandlers({
@@ -38,9 +37,9 @@ app.whenReady().then(async () => {
     mainWindow.loadURL("http://localhost:5123");
   } else {
     mainWindow.loadFile(path.join(app.getAppPath(), "/dist-react/index.html"));
-    autoUpdater.checkForUpdatesAndNotify(); 
+    autoUpdater.checkForUpdatesAndNotify();
   }
-  
+ 
 });
 
 // Ensure VPN disconnects when app closes
