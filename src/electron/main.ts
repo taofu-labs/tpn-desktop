@@ -12,7 +12,7 @@ const { autoUpdater } = updater;
 
 /* ///////////////////////////////
 // Event listeners
-// /////////////////////////////*/
+// /////////////////////////////*/ß
 app.whenReady().then(async () => {
   const mainWindow = new BrowserWindow({
     width: 1200,
@@ -22,12 +22,7 @@ app.whenReady().then(async () => {
       preload: getPreloadPath(),
     },
   });
-  if (isDev()) {
-    mainWindow.loadURL("http://localhost:5123");
-  } else {
-    mainWindow.loadFile(path.join(app.getAppPath(), "/dist-react/index.html"));
-    autoUpdater.checkForUpdatesAndNotify();
-  }
+  
   try {
     await initialize_tpn();
 
@@ -39,6 +34,13 @@ app.whenReady().then(async () => {
   } catch (error) {
     console.error("Failed to initialize TPN:", error);
   }
+  if (isDev()) {
+    mainWindow.loadURL("http://localhost:5123");
+  } else {
+    mainWindow.loadFile(path.join(app.getAppPath(), "/dist-react/index.html"));
+    autoUpdater.checkForUpdatesAndNotify(); 
+  }
+  
 });
 
 // Ensure VPN disconnects when app closes
