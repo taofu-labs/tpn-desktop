@@ -6,8 +6,8 @@ import { getPreloadPath } from "./pathResolver.js";
 import { initialize_tpn } from "./tpn-cli.js";
 import { initializeIpcHandlers } from "./ipcHandlers.js";
 import { tpnService } from "./tpnService.js";
-import { autoUpdater } from 'electron-updater'
-
+import updater from "electron-updater";
+const { autoUpdater } = updater;
 
 /* ///////////////////////////////
 // Event listeners
@@ -25,7 +25,7 @@ app.whenReady().then(async () => {
     mainWindow.loadURL("http://localhost:5123");
   } else {
     mainWindow.loadFile(path.join(app.getAppPath(), "/dist-react/index.html"));
-    autoUpdater.checkForUpdatesAndNotify(); 
+    autoUpdater.checkForUpdatesAndNotify();
   }
   try {
     await initialize_tpn();
@@ -41,31 +41,31 @@ app.whenReady().then(async () => {
 });
 
 // Ensure VPN disconnects when app closes
-app.on('before-quit', async () => {
+app.on("before-quit", async () => {
   try {
     // Optionally, you can check if connected before disconnecting
     await tpnService.disconnect();
   } catch (err) {
-    console.error('Error disconnecting VPN on quit:', err);
+    console.error("Error disconnecting VPN on quit:", err);
   }
 });
 
 // Auto Updater Events
-autoUpdater.on('update-available', () => {
+autoUpdater.on("update-available", () => {
   dialog.showMessageBox({
-    type: 'info',
-    title: 'Update Available',
-    message: 'A new update is being downloaded.',
+    type: "info",
+    title: "Update Available",
+    message: "A new update is being downloaded.",
   });
 });
 
-autoUpdater.on('update-downloaded', () => {
+autoUpdater.on("update-downloaded", () => {
   dialog
     .showMessageBox({
-      type: 'info',
-      title: 'Update Ready',
-      message: 'An update is ready. Restart now?',
-      buttons: ['Restart', 'Later'],
+      type: "info",
+      title: "Update Ready",
+      message: "An update is ready. Restart now?",
+      buttons: ["Restart", "Later"],
     })
     .then((result) => {
       if (result.response === 0) {
@@ -74,10 +74,9 @@ autoUpdater.on('update-downloaded', () => {
     });
 });
 
-autoUpdater.on('error', (err) => {
-  console.error('AutoUpdater error:', err);
+autoUpdater.on("error", (err) => {
+  console.error("AutoUpdater error:", err);
 });
-
 
 /* ///////////////////////////////
 // Global config
@@ -93,7 +92,7 @@ if (isDev()) {
 // Debugging
 // /////////////////////////////*/
 const debug = false;
-if (debug){
+if (debug) {
   app.whenReady().then(async () => {
     await alert(__dirname);
 
