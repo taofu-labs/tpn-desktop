@@ -162,7 +162,7 @@ function App() {
 
       <div className="relative flex-1">
         <div className="absolute inset-0 z-0">
-          <MapView connectedCountry={connected ? selectedCountry : null} />
+          <MapView connectedCountry={connected ? selectedCountry : null} selectedCountry={selectedCountry} />
         </div>
 
         <div className="absolute top-3 sm:top-6 left-3 sm:left-6 z-10 flex flex-col gap-3 sm:gap-6">

@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Tooltip } from "react-leaflet";
+import React, { useEffect, useState, useRef } from "react";
+import { MapContainer, TileLayer, Marker, Tooltip, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { countryData } from "./countryData";
-import { serverIcon, connectedIcon } from "./utils/mapUtils";
+import { serverIcon, selectedIcon, connectedIcon } from "./utils/mapUtils";
 
 interface Country {
   name: string;
@@ -11,9 +11,89 @@ interface Country {
 
 interface MapViewProps {
   connectedCountry: Country | null;
+  selectedCountry?: Country | null; // New prop for selected country
 }
 
-const ResponsiveMap: React.FC<MapViewProps> = ({ connectedCountry }) => {
+// Component to handle map zoom animations
+const MapController: React.FC<{ selectedCountry: Country | null; connectedCountry: Country | null }> = ({ 
+  selectedCountry, 
+  connectedCountry 
+}) => {
+  const map = useMap();
+  const lastSelectedCountry = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (selectedCountry && selectedCountry.name !== lastSelectedCountry.current) {
+      const countryDataItem = countryData.find(
+        (c) => c.name.toLowerCase() === selectedCountry.name.toLowerCase()
+      );
+      
+      if (countryDataItem) {
+        lastSelectedCountry.current = selectedCountry.name;
+        
+        // Smooth zoom animation to the selected country
+        map.flyTo(
+          [countryDataItem.lat, countryDataItem.lng],
+          6, // Zoom level for country view
+          {
+            duration: 1.5, // Animation duration in seconds
+            easeLinearity: 0.25,
+            noMoveStart: false
+          }
+        );
+      }
+    } else if (!selectedCountry && connectedCountry) {
+      // If no country is selected but we're connected, zoom to connected country
+      const countryDataItem = countryData.find(
+        (c) => c.name.toLowerCase() === connectedCountry.name.toLowerCase()
+      );
+      
+      if (countryDataItem) {
+        map.flyTo(
+          [countryDataItem.lat, countryDataItem.lng],
+          6,
+          {
+            duration: 1.5,
+            easeLinearity: 0.25,
+            noMoveStart: false
+          }
+        );
+      }
+    } else if (!selectedCountry && !connectedCountry) {
+      // Reset to default view when nothing is selected
+      lastSelectedCountry.current = null;
+      const getCenter = (): [number, number] => {
+        const isMobile = window.innerWidth <= 480;
+        const isTablet = window.innerWidth <= 768 && window.innerWidth > 480;
+        if (isMobile) return [30, 0];
+        if (isTablet) return [25, 0];
+        return [20, 0];
+      };
+      
+      const getZoomLevel = () => {
+        const isMobile = window.innerWidth <= 480;
+        const isTablet = window.innerWidth <= 768 && window.innerWidth > 480;
+        if (isMobile) return 2;
+        if (isTablet) return 2.5;
+        return 3;
+      };
+      
+      map.flyTo(
+        getCenter(),
+        getZoomLevel(),
+        {
+          duration: 1.5,
+          easeLinearity: 0.25,
+          noMoveStart: false
+        }
+      );
+    }
+  }, [selectedCountry, connectedCountry, map]);
+
+  return null; // This component doesn't render anything
+};
+
+const ResponsiveMap: React.FC<MapViewProps> = ({ connectedCountry, selectedCountry }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
 
@@ -58,12 +138,21 @@ const ResponsiveMap: React.FC<MapViewProps> = ({ connectedCountry }) => {
       )
     : null;
 
+  const selectedCountryData = selectedCountry
+    ? countryData.find(
+        c => c.name.toLowerCase() === selectedCountry.name.toLowerCase()
+      )
+    : null;
+
   return (
     <MapContainer
       id="map"
       className="responsive-map"
       {...mapOptions}
+      // Note: preferCanvas and keepBuffer are not supported in react-leaflet v5
+      // Leaflet will cache tiles as the user interacts for smooth zoom
     >
+      <MapController selectedCountry={selectedCountry || null} connectedCountry={connectedCountry} />
       <TileLayer
         url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         // @ts-expect-error react-leaflet v5 does not type noWrap or bounds, but Leaflet supports them
@@ -80,8 +169,18 @@ const ResponsiveMap: React.FC<MapViewProps> = ({ connectedCountry }) => {
         opacity={0}
       />
 
-      {countryData.map((country) => (
-        connectedCountryData && country.code === connectedCountryData.code ? null : (
+      {countryData.map((country) => {
+        // Skip if this is the connected country (it has its own special marker)
+        if (connectedCountryData && country.code === connectedCountryData.code) {
+          return null;
+        }
+        
+        // Skip if this is the selected country (it has its own special marker)
+        if (selectedCountryData && country.code === selectedCountryData.code) {
+          return null;
+        }
+
+        return (
           <Marker
             key={country.code}
             position={[country.lat, country.lng]}
@@ -90,9 +189,25 @@ const ResponsiveMap: React.FC<MapViewProps> = ({ connectedCountry }) => {
           >
             <Tooltip>{country.name} {String.fromCodePoint(...[...country.code].map(c => 0x1f1e6 - 65 + c.charCodeAt(0)))}</Tooltip>
           </Marker>
-        )
-      ))}
-      {/* Special marker for connected country */}
+        );
+      })}
+
+      {/* Special marker for selected country (gold glow) */}
+      {selectedCountryData && !connectedCountryData && (
+        <Marker
+          key={selectedCountryData.code + "-selected"}
+          position={[selectedCountryData.lat, selectedCountryData.lng]}
+          // @ts-expect-error react-leaflet v5 does not type icon prop
+          icon={selectedIcon}
+        >
+          <Tooltip>
+            <span className="font-bold text-yellow-400">Selected: </span>
+            {selectedCountryData.name} {String.fromCodePoint(...[...selectedCountryData.code].map(c => 0x1f1e6 - 65 + c.charCodeAt(0)))}
+          </Tooltip>
+        </Marker>
+      )}
+
+      {/* Special marker for connected country (green glow) */}
       {connectedCountryData && (
         <Marker
           key={connectedCountryData.code + "-connected"}
