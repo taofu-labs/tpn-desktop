@@ -57,12 +57,11 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({
 
   // Format lease time remaining
   const formatLeaseTime = () => {
-    if (remainingSeconds <= 0) return "Unknown";
+    if (remainingSeconds <= 0) return "Disconnecting...";
 
     const hours = Math.floor(remainingSeconds / 3600);
     const minutes = Math.floor((remainingSeconds % 3600) / 60);
     const seconds = remainingSeconds % 60;
-
     return `${hours}H : ${minutes.toString().padStart(2, "0")}M : ${seconds
       .toString()
       .padStart(2, "0")}S`;
@@ -91,7 +90,7 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({
       setRemainingSeconds(0);
       setDisconnecting(true);
       const disconnectPromise = window.electron.disconnect();
-      localStorage.removeItem('tpn-connected-country');
+      localStorage.removeItem("tpn-connected-country");
       toast.promise(disconnectPromise, {
         loading: "Disconnecting from VPN...",
         success: (result) => {
@@ -174,7 +173,7 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({
         <span>⏳ Lease time remaining</span>
       </div>
       <div className="text-lg sm:text-2xl font-mono text-blue-200 mb-2">
-        {formatLeaseTime() || "Disconnecting ...."}
+        {formatLeaseTime()}
       </div>
       {/* Disconnect button */}
       <button

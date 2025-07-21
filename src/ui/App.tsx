@@ -85,6 +85,7 @@ function App() {
 
     const checkStatus = async () => {
       try {
+        
         console.log('Periodic status check...');
         const status = await window.electron.checkStatus();
         setConnected(status.connected);
