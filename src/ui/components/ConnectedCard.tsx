@@ -57,12 +57,11 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({
 
   // Format lease time remaining
   const formatLeaseTime = () => {
-    if (remainingSeconds <= 0) return "Unknown";
+    if (remainingSeconds <= 0) return "Disconnecting...";
 
     const hours = Math.floor(remainingSeconds / 3600);
     const minutes = Math.floor((remainingSeconds % 3600) / 60);
     const seconds = remainingSeconds % 60;
-
     return `${hours}H : ${minutes.toString().padStart(2, "0")}M : ${seconds
       .toString()
       .padStart(2, "0")}S`;
@@ -89,7 +88,26 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({
       return () => clearInterval(timer);
     } else {
       setRemainingSeconds(0);
-      window.electron.disconnect().then(() => setConnected(false));
+      setDisconnecting(true);
+      const disconnectPromise = window.electron.disconnect();
+      localStorage.removeItem("tpn-connected-country");
+      toast.promise(disconnectPromise, {
+        loading: "Disconnecting from VPN...",
+        success: (result) => {
+          if (result.success) {
+            setConnected(false);
+            return "Successfully disconnected from VPN";
+          } else {
+            throw new Error("Disconnect failed");
+          }
+        },
+        error: (error) => {
+          console.error("Disconnect error:", error);
+          return `Failed to disconnect: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`;
+        },
+      });
     }
   }, [connectionInfo?.minutesRemaining, setConnected]);
 

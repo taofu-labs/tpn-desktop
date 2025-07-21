@@ -70,14 +70,14 @@ function App() {
     initializeApp();
   }, []);
 
-  // Save selected country to localStorage
-  useEffect(() => {
-    if (selectedCountry) {
-      localStorage.setItem('tpn-connected-country', JSON.stringify(selectedCountry));
-    } else {
-      localStorage.removeItem('tpn-connected-country');
-    }
-  }, [selectedCountry]);
+  // // Save selected country to localStorage
+  // useEffect(() => {
+  //   if (selectedCountry) {
+  //     localStorage.setItem('tpn-connected-country', JSON.stringify(selectedCountry));
+  //   } else {
+  //     localStorage.removeItem('tpn-connected-country');
+  //   }
+  // }, [selectedCountry]);
 
   // Periodically check connection status (only after initial load)
   useEffect(() => {
@@ -85,6 +85,7 @@ function App() {
 
     const checkStatus = async () => {
       try {
+        
         console.log('Periodic status check...');
         const status = await window.electron.checkStatus();
         setConnected(status.connected);
@@ -162,7 +163,7 @@ function App() {
 
       <div className="relative flex-1">
         <div className="absolute inset-0 z-0">
-          <MapView connectedCountry={connected ? selectedCountry : null} />
+          <MapView connectedCountry={connected ? selectedCountry : null} selectedCountry={selectedCountry} />
         </div>
 
         <div className="absolute top-3 sm:top-6 left-3 sm:left-6 z-10 flex flex-col gap-3 sm:gap-6">
