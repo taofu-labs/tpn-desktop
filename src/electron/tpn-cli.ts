@@ -1,5 +1,5 @@
 import { app } from 'electron'
-import { exec } from 'node:child_process'
+import { exec, spawn } from 'node:child_process'
 import type { ExecOptions } from 'node:child_process'
 import { log, alert, wait, confirm } from './helpers.js'
 
@@ -60,9 +60,9 @@ const exec_async_no_timeout = (command: string): Promise<string> =>
     const commandWithTee = `${command} 2>&1 | tee -a ${ASYNC_LOG}`
     log(`Executing ${commandWithTee}`)
 
-    exec(commandWithTee, shell_options, (error, stdout, stderr) => {
-      console.log(`stdout: ${stdout}`)
-      if (error) return reject(error)
+    exec(command, shell_options, (error, stdout, stderr) => {
+      if (stdout) return resolve(stdout)
+      if (error) return reject(new Error(stderr))
       if (stderr) return reject(new Error(stderr))
       if (stdout) return resolve(stdout)
       resolve('')
@@ -106,6 +106,60 @@ const exec_sudo_async = (command: string) =>
     })
   })
 
+// Verify WireGuard installation with retry logic
+const verifyWireGuardInstallation = async (maxRetries = 5): Promise<void> => {
+  log('Verifying WireGuard installation...')
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    log(`Verification attempt ${attempt}/${maxRetries}...`)
+
+    const [wgQuickCheck, wgCheck] = await Promise.all([
+      new Promise<string>((resolve) => {
+        exec('which wg-quick', shell_options, (error, stdout) => {
+          resolve(stdout.trim())
+        })
+      }),
+      new Promise<string>((resolve) => {
+        exec('which wg', shell_options, (error, stdout) => {
+          resolve(stdout.trim())
+        })
+      }),
+    ])
+
+    if (wgQuickCheck && wgCheck) {
+      log('WireGuard installation verified successfully')
+      log(`wg-quick: ${wgQuickCheck}`)
+      log(`wg: ${wgCheck}`)
+      return
+    }
+
+    if (attempt < maxRetries) {
+      const delay = Math.min(1000 * attempt, 5000) // 1s, 2s, 3s, 4s, 5s max
+      log(
+        `Binaries not ready yet (wg-quick: ${!!wgQuickCheck}, wg: ${!!wgCheck}), waiting ${delay}ms...`,
+      )
+      await new Promise((resolve) => setTimeout(resolve, delay))
+    }
+  }
+
+  throw new Error(
+    `WireGuard installation verification failed after ${maxRetries} attempts. Binaries may not have been installed correctly.`,
+  )
+}
+
+export const checkSystemComponents = async (): Promise<{
+  tpn_installed: any
+  wg_installed: any
+  tpn_in_visudo: any
+}> => {
+  const [tpn_installed, wg_installed, tpn_in_visudo] = await Promise.all([
+    exec_async(`${path_fix} which tpn`).catch(() => false),
+    exec_async(`${path_fix} which wg-quick`).catch(() => false),
+    exec_async(`${path_fix} sudo -n wg show`).catch(() => false),
+  ])
+  return { tpn_installed, wg_installed, tpn_in_visudo }
+}
+
 export const initialize_tpn = async (): Promise<void> => {
   try {
     // Check if dev mode
@@ -124,15 +178,27 @@ export const initialize_tpn = async (): Promise<void> => {
     log(`Internet online: ${online}`)
 
     // Check if tpn is installed and visudo entries are complete.
-    const [tpn_installed, wg_installed, tpn_in_visudo] = await Promise.all([
+    const [tpn_installed, wg_installed, tpn_in_visudo, mm] = await Promise.all([
       exec_async(`${path_fix} which tpn`).catch(() => false),
       exec_async(`${path_fix} which wg-quick`).catch(() => false),
       exec_async(`${path_fix} sudo -n wg-quick`).catch(() => false),
+      exec_async(`${path_fix} sudo -n /usr/local/bin/smc -k ACLC -w 02`).catch(
+        () => false,
+      ),
     ])
 
-    const visudo_complete = Boolean(tpn_in_visudo)
-    const is_installed = Boolean(tpn_installed && wg_installed)
+    console.log('mm', tpn_in_visudo)
 
+    const systemComponents = await checkSystemComponents()
+    const visudo_complete = systemComponents.tpn_in_visudo !== false
+    const is_installed = Boolean(
+      systemComponents.tpn_installed && systemComponents.wg_installed,
+    )
+    console.log('visudo output', systemComponents.tpn_in_visudo !== false)
+    console.log('visudo', visudo_complete)
+    console.log('tpn install', !!systemComponents.tpn_installed)
+    console.log('is_installed', is_installed)
+    console.log('wg', !!systemComponents.wg_installed)
     // If installed, update
     if (is_installed && visudo_complete) {
       if (!online) return log(`Skipping battery update because we are offline`)
@@ -158,7 +224,7 @@ export const initialize_tpn = async (): Promise<void> => {
           `TPN needs to apply a backwards incompatible update, to do this it will ask for your password. This should not happen frequently.`,
         )
 
-      if (!wg_installed) {
+      if (!systemComponents.wg_installed) {
         log('Installing WireGuard tools as regular user...')
 
         // Check if Homebrew exists
@@ -174,22 +240,70 @@ export const initialize_tpn = async (): Promise<void> => {
 
         // Install WireGuard as regular user (not sudo)
         try {
-          await exec_async(
-            'HOMEBREW_NO_AUTO_UPDATE=1 brew install wireguard-tools',
-          )
+          const result = await new Promise((resolve, reject) => {
+            exec(
+              'HOMEBREW_NO_AUTO_UPDATE=1 brew install wireguard-tools',
+              { ...shell_options, timeout: 60000 },
+              (error, stdout, stderr) => {
+                if (
+                  error ||
+                  stderr.includes('Error') ||
+                  stdout.includes('Error')
+                ) {
+                  reject(
+                    new Error(
+                      `Brew failed: ${error?.message || stderr || stdout}`,
+                    ),
+                  )
+                } else {
+                  resolve(stdout)
+                }
+              },
+            )
+          })
+
+          await verifyWireGuardInstallation()
+
           log('WireGuard installed')
         } catch (e) {
           const error = e as Error
           log('Error installing WireGuard:', error)
           await alert(`Error installing WireGuard: ${error.message}`)
+          app.quit()
+          app.exit()
           return
         }
       }
+
       await exec_sudo_async(
         `curl -s https://raw.githubusercontent.com/taofu-labs/tpn-cli/main/setup.sh | bash -s -- $USER`,
       )
+
+      //Check Sytem component for the last time
+
+      const finalCheck = await checkSystemComponents()
+
+      const finalVisudoComplete = finalCheck.tpn_in_visudo !== false
+      const finalInstalled = Boolean(
+        finalCheck.tpn_installed && finalCheck.wg_installed,
+      )
+
+       console.log("finalVisudoComplete", finalVisudoComplete)
+       console.log("finalInstalled", finalInstalled)
+
+
+      if (
+        !finalVisudoComplete|| 
+        !finalInstalled
+      ) {
+        console.log('throw error')
+        throw new Error(
+          'Installation verification failed: TPN system was not properly configured',
+        )
+      }
+
       await alert(
-        `TPN background components installed successfully. You can find the battery limiter icon in the top right of your menu bar.`,
+        `TPN background components installed successfully.`,
       )
     }
 
@@ -222,7 +336,7 @@ export const connect = async (
 
   log(`Executing command: ${command}`)
 
-  const result = await exec_async(command, 15000)
+  const result = await exec_async(command, 60000)
   log(`Update result: `, result)
 
   if (result) {
@@ -248,10 +362,9 @@ export const connect = async (
 
 export const listCountries: any = async (): Promise<string[]> => {
   let command = `${tpn} countries`
+  //log(`Executing command: ${command}`)
 
-  log(`Executing command: ${command}`)
-
-  const result = await exec_async(command, 100000, true)
+  const result = await exec_async(command, 60000, true)
   log(`Update result: `, typeof result)
   if (typeof result === 'string') {
     try {
@@ -271,7 +384,7 @@ export const checkStatus = async (): Promise<StatusInfo> => {
 
   log(`Executing command: ${command}`)
 
-  const result = await exec_async(command)
+  const result = await exec_async(command, 5000)
   log(`Update result: `, result)
   if (result) {
     checkForErrors(result)
@@ -342,30 +455,32 @@ export const disconnect = async (): Promise<DisconnectInfo> => {
   const result = await exec_async(command)
   log(`Update result: `, result)
 
-    if (typeof result === 'string') {
+  if (typeof result === 'string') {
     checkForErrors(result)
-    
+
     // Parse the IP change: "IP changed back from 38.54.29.240 to 80.41.137.152"
-    const ipChangeMatch = result.match(/IP changed back from ([\d.]+) to ([\d.]+)/)
-    
+    const ipChangeMatch = result.match(
+      /IP changed back from ([\d.]+) to ([\d.]+)/,
+    )
+
     if (ipChangeMatch) {
       return {
         success: true,
         previousIP: ipChangeMatch[1], // VPN IP
-        newIP: ipChangeMatch[2],      // Real IP
-        message: 'Successfully disconnected from VPN'
+        newIP: ipChangeMatch[2], // Real IP
+        message: 'Successfully disconnected from VPN',
       }
     }
-    
+
     // If no IP change found but no errors, still consider it successful
     if (result.includes('Disconnecting TPN')) {
       return {
         success: true,
-        message: 'Disconnected from TPN'
+        message: 'Disconnected from TPN',
       }
     }
   }
-  
+
   throw new Error('Failed to disconnect')
 }
 
