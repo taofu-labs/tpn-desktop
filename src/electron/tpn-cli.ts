@@ -178,16 +178,16 @@ export const initialize_tpn = async (): Promise<void> => {
     log(`Internet online: ${online}`)
 
     // Check if tpn is installed and visudo entries are complete.
-    const [tpn_installed, wg_installed, tpn_in_visudo, mm] = await Promise.all([
-      exec_async(`${path_fix} which tpn`).catch(() => false),
-      exec_async(`${path_fix} which wg-quick`).catch(() => false),
-      exec_async(`${path_fix} sudo -n wg-quick`).catch(() => false),
-      exec_async(`${path_fix} sudo -n /usr/local/bin/smc -k ACLC -w 02`).catch(
-        () => false,
-      ),
-    ])
+    // const [tpn_installed, wg_installed, tpn_in_visudo, mm] = await Promise.all([
+    //   exec_async(`${path_fix} which tpn`).catch(() => false),
+    //   exec_async(`${path_fix} which wg-quick`).catch(() => false),
+    //   exec_async(`${path_fix} sudo -n wg-quick`).catch(() => false),
+    //   exec_async(`${path_fix} sudo -n /usr/local/bin/smc -k ACLC -w 02`).catch(
+    //     () => false,
+    //   ),
+    // ])
 
-    console.log('mm', tpn_in_visudo)
+    // console.log('mm', tpn_in_visudo)
 
     const systemComponents = await checkSystemComponents()
     const visudo_complete = systemComponents.tpn_in_visudo !== false

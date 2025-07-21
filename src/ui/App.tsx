@@ -70,14 +70,14 @@ function App() {
     initializeApp();
   }, []);
 
-  // // Save selected country to localStorage
-  // useEffect(() => {
-  //   if (selectedCountry) {
-  //     localStorage.setItem('tpn-connected-country', JSON.stringify(selectedCountry));
-  //   } else {
-  //     localStorage.removeItem('tpn-connected-country');
-  //   }
-  // }, [selectedCountry]);
+  // Save selected country to localStorage
+  useEffect(() => {
+    if (selectedCountry) {
+      localStorage.setItem('tpn-connected-country', JSON.stringify(selectedCountry));
+    } else {
+      localStorage.removeItem('tpn-connected-country');
+    }
+  }, [selectedCountry]);
 
   // Periodically check connection status (only after initial load)
   useEffect(() => {
@@ -109,7 +109,7 @@ function App() {
     };
 
     // Check status every 30 seconds
-    const interval = setInterval(checkStatus, 30000);
+    const interval = setInterval(checkStatus, 120000);
 
     return () => clearInterval(interval);
   }, [isInitializing]); 
