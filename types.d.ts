@@ -25,6 +25,7 @@ type EventPayloadMapping = {
   connectToCountry: ConnectionInfo;
   checkStatus: StatusInfo;
   disconnect: DisconnectInfo;
+  startSpeedTest: boolean
 };
 
 interface Window {
@@ -33,6 +34,8 @@ interface Window {
     connectToCountry: (country: string) => Promise<ConnectionInfo>;
     checkStatus: () => Promise<StatusInfo>;
     disconnect: () => Promise<DisconnectInfo>;
+    startSpeedTest:  () => Promise<{ success: boolean }>;
+    onSpeedTestProgress: (callback: (data: SpeedTestProgress) => void) => void;
   };
 }
 
