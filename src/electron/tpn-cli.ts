@@ -251,7 +251,7 @@ export const listCountries: any = async (): Promise<string[]> => {
 
   log(`Executing command: ${command}`)
 
-  const result = await exec_async(command, 10000, true)
+  const result = await exec_async(command, 100000, true)
   log(`Update result: `, typeof result)
   if (typeof result === 'string') {
     try {

@@ -11,10 +11,15 @@
     "productName": "TPN Desktop",
     "mac": {
       "category": "public.security.utilities",
-      "target": ["dmg", "zip"]
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
     "win": {
-      "target": ["nsis"]
+      "target": [
+        "nsis"
+      ]
     },
     "publish": [
       {
@@ -49,12 +54,14 @@
     "react-leaflet": "^5.0.0",
     "react-loader-spinner": "^6.1.6",
     "react-router-dom": "^7.6.3",
+    "speed-test": "^3.0.0",
     "update-electron-app": "^3.1.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "@types/speedtest-net": "^2.1.5",
     "@vitejs/plugin-react": "^4.5.2",
     "@vitest/ui": "^3.2.4",
     "autoprefixer": "^10.4.21",
