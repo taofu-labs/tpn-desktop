@@ -57,9 +57,7 @@ const checkForErrors = (output: string): void => {
 // Execute without sudo
 const exec_async_no_timeout = (command: string): Promise<string> =>
   new Promise((resolve, reject) => {
-    const commandWithTee = `${command} 2>&1 | tee -a ${ASYNC_LOG}`
-    log(`Executing ${commandWithTee}`)
-
+    log(`Executing ${command}`)
     exec(command, shell_options, (error, stdout, stderr) => {
       if (stdout) return resolve(stdout)
       if (error) return reject(new Error(stderr))
@@ -178,27 +176,13 @@ export const initialize_tpn = async (): Promise<void> => {
     log(`Internet online: ${online}`)
 
     // Check if tpn is installed and visudo entries are complete.
-    const [tpn_installed, wg_installed, tpn_in_visudo, mm] = await Promise.all([
-      exec_async(`${path_fix} which tpn`).catch(() => false),
-      exec_async(`${path_fix} which wg-quick`).catch(() => false),
-      exec_async(`${path_fix} sudo -n wg-quick`).catch(() => false),
-      exec_async(`${path_fix} sudo -n /usr/local/bin/smc -k ACLC -w 02`).catch(
-        () => false,
-      ),
-    ])
-
-    console.log('mm', tpn_in_visudo)
 
     const systemComponents = await checkSystemComponents()
     const visudo_complete = systemComponents.tpn_in_visudo !== false
     const is_installed = Boolean(
       systemComponents.tpn_installed && systemComponents.wg_installed,
     )
-    console.log('visudo output', systemComponents.tpn_in_visudo !== false)
-    console.log('visudo', visudo_complete)
-    console.log('tpn install', !!systemComponents.tpn_installed)
-    console.log('is_installed', is_installed)
-    console.log('wg', !!systemComponents.wg_installed)
+ 
     // If installed, update
     if (is_installed && visudo_complete) {
       if (!online) return log(`Skipping battery update because we are offline`)
