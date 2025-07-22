@@ -13,7 +13,7 @@ import { ipcMainHandler } from "./util.js";
 export interface IpcServices {
   tpnService: {
     getCountries(): Promise<string[]>;
-    connect(country?: string): Promise<ConnectionInfo>;
+    connect(country: string, lease?: number): Promise<ConnectionInfo>;
     checkStatus(): Promise<StatusInfo>;
     disconnect(): Promise<DisconnectInfo>;
   },
@@ -49,8 +49,9 @@ export function initializeIpcHandlers(services: IpcServices): void {
     return await services.tpnService.getCountries();
   });
 
-  ipcMainHandler("connectToCountry", async (country?: string) => {
-    return await services.tpnService.connect(country);
+  ipcMainHandler("connectToCountry", async (...args: any[]) => {
+     const [country, lease] = args;
+    return await services.tpnService.connect(country, lease);
   });
 
   ipcMainHandler("checkStatus", async () => {

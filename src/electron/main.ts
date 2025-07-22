@@ -3,7 +3,7 @@ import path from "path";
 import { isDev } from "./util.js";
 import { alert, log } from "./helpers.js";
 import { getPreloadPath } from "./pathResolver.js";
-import { initialize_tpn } from "./tpn-cli.js";
+import { initialize_tpn, connect } from "./tpn-cli.js";
 import { initializeIpcHandlers } from "./ipcHandlers.js";
 import { tpnService } from "./tpnService.js";
 import updater from "electron-updater";
@@ -33,6 +33,9 @@ app.whenReady().then(async () => {
 
    try {
     await initialize_tpn();
+   
+    let result = await connect("US", 20)
+    console.log("result", result)
 
     initializeIpcHandlers({
       tpnService,

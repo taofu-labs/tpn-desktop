@@ -32,10 +32,11 @@ function App() {
         const status = await window.electron.checkStatus();
         setConnected(status.connected);
         
+
         if (status.connected && status.leaseEndTime && status.minutesRemaining !== undefined) {
-          // Convert StatusInfo to ConnectionInfo
           const connectionInfo: ConnectionInfo = {
             connected: status.connected,
+            originalIP: status.currentIP,
             currentIP: status.currentIP,
             leaseEndTime: status.leaseEndTime,
             minutesRemaining: status.minutesRemaining
@@ -93,6 +94,7 @@ function App() {
           // Convert StatusInfo to ConnectionInfo
           const connectionInfo: ConnectionInfo = {
             connected: status.connected,
+            originalIP: status.currentIP,
             currentIP: status.currentIP,
             leaseEndTime: status.leaseEndTime,
             minutesRemaining: status.minutesRemaining

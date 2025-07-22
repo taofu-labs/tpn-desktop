@@ -1,6 +1,7 @@
 // Import types from electron backend
 interface ConnectionInfo {
   connected: boolean;
+  originalIP: string;
   currentIP: string;
   leaseEndTime: Date;
   minutesRemaining: number;
