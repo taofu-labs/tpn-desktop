@@ -1,6 +1,7 @@
 // Import types from electron backend
 interface ConnectionInfo {
   connected: boolean;
+  originalIP: string;
   currentIP: string;
   leaseEndTime: Date;
   minutesRemaining: number;
@@ -25,22 +26,26 @@ type EventPayloadMapping = {
   connectToCountry: ConnectionInfo;
   checkStatus: StatusInfo;
   disconnect: DisconnectInfo;
-  startSpeedTest: boolean
+  startSpeedTest: boolean;
 };
 
+type ConnectionPayload = {
+  country: string;
+  lease: number;
+};
 interface Window {
   electron: {
     getCountries: () => Promise<string[]>;
-    connectToCountry: (country: string) => Promise<ConnectionInfo>;
+    connectToCountry: (payload: ConnectionPayload) => Promise<ConnectionInfo>;
     checkStatus: () => Promise<StatusInfo>;
     disconnect: () => Promise<DisconnectInfo>;
-    startSpeedTest:  () => Promise<{ success: boolean }>;
+    startSpeedTest: () => Promise<{ success: boolean }>;
     onSpeedTestProgress: (callback: (data: SpeedTestProgress) => void) => void;
   };
 }
 
 // Leaflet module declaration
-declare module 'leaflet' {
+declare module "leaflet" {
   export interface DivIconOptions {
     className?: string;
     html?: string;
@@ -55,6 +60,3 @@ declare module 'leaflet' {
 
   export const divIcon: (options: DivIconOptions) => DivIcon;
 }
-
-
-

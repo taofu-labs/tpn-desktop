@@ -18,8 +18,8 @@ export const tpnService = {
     return await listCountries()
   },
 
-  async connect(country?: string): Promise<ConnectionInfo>  {
-    return await connect(country)
+  async connect(country: string = "any", lease?: number): Promise<ConnectionInfo>  {
+    return await connect(country, lease)
   },
 
   async checkStatus(): Promise<StatusInfo> {

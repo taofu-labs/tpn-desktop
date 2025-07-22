@@ -37,9 +37,7 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({
       },
       error: (error) => {
         console.error("Disconnect error:", error);
-        return `Failed to disconnect: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`;
+        return `Failed to disconnect: Please restart application.`;
       },
     });
 
@@ -58,10 +56,9 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({
   // Format lease time remaining
   const formatLeaseTime = () => {
     if (remainingSeconds <= 0) return "Disconnecting...";
-    const hours = Math.floor(remainingSeconds / 3600);
     const minutes = Math.floor((remainingSeconds % 3600) / 60);
     const seconds = remainingSeconds % 60;
-    return `${hours}H : ${minutes.toString().padStart(2, "0")}M : ${seconds
+    return `${minutes.toString().padStart(2, "0")}M : ${seconds
       .toString()
       .padStart(2, "0")}S`;
   };
@@ -88,7 +85,7 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({
     } else {
       setRemainingSeconds(0);
       setDisconnecting(true);
-      const disconnectPromise = window.electron.disconnect();
+      const disconnectPromise = window.electron.disconnect();ß
       localStorage.removeItem("tpn-connected-country");
       toast.promise(disconnectPromise, {
         loading: "Disconnecting from VPN...",
@@ -117,7 +114,7 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({
       const stopMonitoring = startSpeedMonitoring((speeds) => {
         setNetworkSpeeds({ up: speeds.upload, down: speeds.download });
         setIsMeasuring(false);
-      }, 30000); // Measure every 30 seconds
+      }, 5000); // Measure every 30 seconds
 
       return stopMonitoring;
     }
@@ -162,9 +159,9 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({
         </span>
       </div>
       {/* IP Address */}
-      {connectionInfo?.currentIP && (
+      {connectionInfo?.originalIP && (
         <div className="text-xs sm:text-sm text-gray-300 mb-2">
-          Original IP: {connectionInfo.currentIP}
+          Original IP: {connectionInfo.originalIP}
         </div>
       )}
       {connectionInfo?.currentIP && (

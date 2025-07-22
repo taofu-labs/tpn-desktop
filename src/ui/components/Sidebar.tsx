@@ -6,16 +6,8 @@ import {
 } from "../utils/countryUtils";
 import { Oval } from "react-loader-spinner";
 import toast from "react-hot-toast";
-
-const leaseDurations = [
-  { time: "1 hour", minute: 60 },
-  { time: "6 hours", minute: 360 },
-  { time: "12 hours", minute: 720 },
-  { time: "1 day", minute: 1440 },
-  { time: "1 week", minute: 10080 }
-];
-
-interface SidebarProps {
+import { leaseDurations } from "../utils/connection";
+export interface SidebarProps {
   selectedCountry: { name: string; flag: string } | null;
   setSelectedCountry: (country: { name: string; flag: string } | null) => void;
   connected: boolean;
@@ -41,8 +33,8 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   useEffect(() => {
     let retryTimeout: NodeJS.Timeout | null = null;
-    let intervalId: NodeJS.Timeout | null = null;
     let cancelled = false;
+  
     async function fetchCountries() {
       setLoading(true);
       setError(false);
@@ -52,9 +44,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           if (Array.isArray(countryNames) && countryNames.length > 0) {
             setCountries(
               countryNames.map((name: string) => {
-                const country = name === "hong kong sar china" ? "china" : name;
-                const code = getCountryCodeByName(country);
-
+                const code = getCountryCodeByName(name);
                 return {
                   name,
                   flag: code ? codeToFlagEmoji(code) : "🏳️",
@@ -73,35 +63,66 @@ const Sidebar: React.FC<SidebarProps> = ({
         setError(true);
         setCountries([]);
       }
+  
       if (!cancelled) {
         retryTimeout = setTimeout(fetchCountries, 2000);
       }
+  
       setLoading(false);
     }
+  
+    // Initial fetch on load
     fetchCountries();
-    // Set up interval to fetch countries every 10 minutes
-    intervalId = setInterval(fetchCountries, 600000);
+  
     return () => {
       cancelled = true;
       if (retryTimeout) clearTimeout(retryTimeout);
-      if (intervalId) clearInterval(intervalId);
     };
-  }, []);
-
+  }, []); // ← Only runs on mount
+  
+  useEffect(() => {
+    if(loading) return;
+    const intervalId = setInterval(() => {
+      if (window.electron && window.electron.getCountries) {
+        window.electron.getCountries().then((countryNames) => {
+          if (Array.isArray(countryNames) && countryNames.length > 0) {
+            setCountries(
+              countryNames.map((name: string) => {
+                const code = getCountryCodeByName(name);
+                return {
+                  name,
+                  flag: code ? codeToFlagEmoji(code) : "🏳️",
+                };
+              })
+            );
+          }
+        }).catch(() => {
+          // Optional: silent catch for background polling
+        });
+      }
+    }, 600000); // every 10 minutes
+  
+    return () => clearInterval(intervalId);
+  }, []); // ← Also runs on mount, but sets up background polling
+  
   const handleConnect = async () => {
     if (!selectedCountry || !selectedLease) return;
 
     setConnecting(true);
-    const country =
-      selectedCountry.name === "hong kong sar china"
-        ? selectedCountry.name
-        : getCountryCodeByName(selectedCountry.name);
-    const connectPromise = window.electron.connectToCountry(String(country));
+
+    const connectPromise = window.electron.connectToCountry({
+      country: selectedCountry?.name,
+      lease: +selectedLease,
+    });
 
     toast.promise(connectPromise, {
       loading: `Connecting to ${capitalizeWords(selectedCountry.name)}...`,
       success: (connectionInfo) => {
         if (connectionInfo.connected) {
+          localStorage.setItem(
+            "tpn-original-ip",
+            JSON.stringify(connectionInfo.originalIP)
+          );
           setConnected(true);
           setConnectionInfo(connectionInfo);
           setSelectedLease("");
@@ -112,9 +133,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       },
       error: (error) => {
         console.error("Connection error:", error);
-        return `Failed to connect: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`;
+        return `Failed to connect: Please try agian.`;
       },
     });
 
@@ -197,9 +216,9 @@ const Sidebar: React.FC<SidebarProps> = ({
               </div>
             ) : (
               <ul className="max-h-80 sm:max-h-96 overflow-y-auto custom-scrollbar">
-                {filteredCountries.map((c) => (
+                {filteredCountries.map((c, index) => (
                   <li
-                    key={c.name}
+                    key={index}
                     className={`flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 rounded cursor-pointer mb-1 transition-colors text-sm sm:text-base ${
                       selectedCountry?.name === c.name
                         ? "bg-[#232F4B] text-blue-400"
@@ -244,8 +263,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             <option value="" disabled>
               Select lease duration
             </option>
-            {leaseDurations.map((d) => (
-              <option key={d.time} value={d.minute}>
+            {leaseDurations.map((d, index) => (
+              <option key={index} value={d.minute}>
                 {d.time}
               </option>
             ))}
