@@ -189,7 +189,7 @@ const ResponsiveMap: React.FC<MapViewProps> = ({
         opacity={0}
       />
 
-      {countryData.map((country) => {
+      {countryData.map((country, index) => {
         // Skip if this is the connected country (it has its own special marker)
         if (
           connectedCountryData &&
@@ -202,10 +202,9 @@ const ResponsiveMap: React.FC<MapViewProps> = ({
         if (selectedCountryData && country.code === selectedCountryData.code) {
           return null;
         }
-
         return (
           <Marker
-            key={country.code}
+            key={index}
             position={[country.lat, country.lng]}
             // @ts-expect-error react-leaflet v5 does not type icon prop
             icon={serverIcon}

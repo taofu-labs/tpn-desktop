@@ -10,8 +10,8 @@ electron.contextBridge.exposeInMainWorld("electron", {
     return await ipcInvoke('checkStatus');
   },
   
-  connectToCountry: async (country: string): Promise<ConnectionInfo> => {
-    return await ipcInvoke('connectToCountry', country);
+  connectToCountry: async (payload: ConnectionPayload): Promise<ConnectionInfo> => {
+    return await ipcInvoke('connectToCountry', payload);
   },
   
   disconnect: async (): Promise<DisconnectInfo> => {
@@ -33,9 +33,9 @@ electron.contextBridge.exposeInMainWorld("electron", {
 // Generic IPC invoke function
 function ipcInvoke<Key extends keyof EventPayloadMapping>(
   key: Key,
-  payload?: any
+  ...args: any[]
 ): Promise<EventPayloadMapping[Key]> {
-  return electron.ipcRenderer.invoke(key, payload);
+  return electron.ipcRenderer.invoke(key, ...args);
 }
 
 interface SpeedTestResult {

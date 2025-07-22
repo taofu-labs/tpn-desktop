@@ -5,6 +5,7 @@ import { log, alert, wait, confirm } from './helpers.js'
 
 export interface ConnectionInfo {
   connected: boolean
+  originalIP: string
   currentIP: string
   leaseEndTime: Date
   minutesRemaining: number
@@ -22,6 +23,11 @@ export interface DisconnectInfo {
   previousIP?: string
   newIP?: string
   message?: string
+}
+
+interface IPInfo {
+  originalIP: string;
+  currentIP: string;
 }
 
 const { USER } = process.env
@@ -57,9 +63,7 @@ const checkForErrors = (output: string): void => {
 // Execute without sudo
 const exec_async_no_timeout = (command: string): Promise<string> =>
   new Promise((resolve, reject) => {
-    const commandWithTee = `${command} 2>&1 | tee -a ${ASYNC_LOG}`
-    log(`Executing ${commandWithTee}`)
-
+    log(`Executing ${command}`)
     exec(command, shell_options, (error, stdout, stderr) => {
       if (stdout) return resolve(stdout)
       if (error) return reject(new Error(stderr))
@@ -178,27 +182,13 @@ export const initialize_tpn = async (): Promise<void> => {
     log(`Internet online: ${online}`)
 
     // Check if tpn is installed and visudo entries are complete.
-    // const [tpn_installed, wg_installed, tpn_in_visudo, mm] = await Promise.all([
-    //   exec_async(`${path_fix} which tpn`).catch(() => false),
-    //   exec_async(`${path_fix} which wg-quick`).catch(() => false),
-    //   exec_async(`${path_fix} sudo -n wg-quick`).catch(() => false),
-    //   exec_async(`${path_fix} sudo -n /usr/local/bin/smc -k ACLC -w 02`).catch(
-    //     () => false,
-    //   ),
-    // ])
-
-    // console.log('mm', tpn_in_visudo)
 
     const systemComponents = await checkSystemComponents()
     const visudo_complete = systemComponents.tpn_in_visudo !== false
     const is_installed = Boolean(
       systemComponents.tpn_installed && systemComponents.wg_installed,
     )
-    console.log('visudo output', systemComponents.tpn_in_visudo !== false)
-    console.log('visudo', visudo_complete)
-    console.log('tpn install', !!systemComponents.tpn_installed)
-    console.log('is_installed', is_installed)
-    console.log('wg', !!systemComponents.wg_installed)
+
     // If installed, update
     if (is_installed && visudo_complete) {
       if (!online) return log(`Skipping battery update because we are offline`)
@@ -288,23 +278,17 @@ export const initialize_tpn = async (): Promise<void> => {
         finalCheck.tpn_installed && finalCheck.wg_installed,
       )
 
-       console.log("finalVisudoComplete", finalVisudoComplete)
-       console.log("finalInstalled", finalInstalled)
+      console.log('finalVisudoComplete', finalVisudoComplete)
+      console.log('finalInstalled', finalInstalled)
 
-
-      if (
-        !finalVisudoComplete|| 
-        !finalInstalled
-      ) {
+      if (!finalVisudoComplete || !finalInstalled) {
         console.log('throw error')
         throw new Error(
           'Installation verification failed: TPN system was not properly configured',
         )
       }
 
-      await alert(
-        `TPN background components installed successfully.`,
-      )
+      await alert(`TPN background components installed successfully.`)
     }
 
     // Basic user tracking on app open, run it in the background so it does not cause any delay for the user
@@ -321,16 +305,30 @@ export const initialize_tpn = async (): Promise<void> => {
   }
 }
 
-const extractIP = (output: string): string => {
-  const ipMatch = output.match(/IP address changed from [\d.]+ to ([\d.]+)/)
-  return ipMatch ? ipMatch[1] : ''
+const extractIP = (output: string): IPInfo => {
+  const ipMatch = output.match(/IP address changed from ([\d.]+) to ([\d.]+)/)
+  
+  if (ipMatch) {
+    return {
+      originalIP: ipMatch[1],
+      currentIP: ipMatch[2]
+    }
+  }
+  
+  return {
+    originalIP: '',
+    currentIP: ''
+  }
 }
-
 export const connect = async (
   country: string = 'any',
+  lease?: number,
 ): Promise<ConnectionInfo> => {
   let command = `${tpn} connect ${country}`
 
+  if (lease) {
+    command += ` --lease_minutes ${lease}`
+  }
   command += ' -f'
   command += ' -v'
 
@@ -339,18 +337,23 @@ export const connect = async (
   const result = await exec_async(command, 60000)
   log(`Update result: `, result)
 
+
   if (result) {
     checkForErrors(result)
     const leaseMatch: RegExpMatchArray | null = result.match(
       /lease ends in (\d+) minutes \(([^)]+)\)/,
     )
+
+    const ipInfo: IPInfo = extractIP(result)
+
     if (leaseMatch) {
       const minutes = parseInt(leaseMatch[1])
       const endTimeStr = leaseMatch[2]
       const endTime: Date = new Date(endTimeStr)
       return {
         connected: true,
-        currentIP: extractIP(result),
+        originalIP: ipInfo.originalIP,
+        currentIP: ipInfo.currentIP,
         leaseEndTime: endTime,
         minutesRemaining: minutes,
       }
