@@ -2,7 +2,7 @@
     "appId": "com.taofu.tpn-desktop",
     "productName": "TPN Desktop",
     "copyright": "Copyright © 2025",
-    "icon": "./desktopIcon.jpg",
+    "icon": "./src/assets/app-icon.icns",
     "files": [
         "dist-electron",
         "dist-react"

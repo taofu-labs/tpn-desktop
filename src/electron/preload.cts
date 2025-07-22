@@ -10,8 +10,8 @@ electron.contextBridge.exposeInMainWorld("electron", {
     return await ipcInvoke('checkStatus');
   },
   
-  connectToCountry: async (country: string, lease?: number): Promise<ConnectionInfo> => {
-    return await ipcInvoke('connectToCountry', country, lease);
+  connectToCountry: async (payload: ConnectionPayload): Promise<ConnectionInfo> => {
+    return await ipcInvoke('connectToCountry', payload);
   },
   
   disconnect: async (): Promise<DisconnectInfo> => {

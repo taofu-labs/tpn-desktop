@@ -1,9 +1,9 @@
-import { app, BrowserWindow, dialog } from "electron";
+import { app, BrowserWindow, dialog, nativeImage } from "electron";
 import path from "path";
 import { isDev } from "./util.js";
 import { alert, log } from "./helpers.js";
-import { getPreloadPath } from "./pathResolver.js";
-import { initialize_tpn, connect } from "./tpn-cli.js";
+import { getPreloadPath, getAssetPath } from "./pathResolver.js";
+import { initialize_tpn } from "./tpn-cli.js";
 import { initializeIpcHandlers } from "./ipcHandlers.js";
 import { tpnService } from "./tpnService.js";
 import updater from "electron-updater";
@@ -22,10 +22,12 @@ app.whenReady().then(async () => {
     width: 1200,
     height: 900,
     show: false,
+    icon: isDev() ? path.join(getAssetPath(), '/app-icon.png') : undefined,
     webPreferences: {
       preload: getPreloadPath(),
     },
   });
+  
 
    state.mainWindow.webContents.on("did-finish-load", () => {
     log("Window finished loading");
@@ -33,9 +35,6 @@ app.whenReady().then(async () => {
 
    try {
     await initialize_tpn();
-   
-    let result = await connect("US", 20)
-    console.log("result", result)
 
     initializeIpcHandlers({
       tpnService,
@@ -61,6 +60,11 @@ app.whenReady().then(async () => {
   }
  
 });
+
+// Set dock icon in dev mode on macOS
+if (isDev() && process.platform === 'darwin' && app.dock) {
+  app.dock.setIcon(nativeImage.createFromPath(path.join(getAssetPath(), 'app-icon.png')));
+}
 
 // Ensure VPN disconnects when app closes
 app.on("before-quit", async () => {

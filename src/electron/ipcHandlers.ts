@@ -50,8 +50,7 @@ export function initializeIpcHandlers(services: IpcServices): void {
   });
 
   ipcMainHandler("connectToCountry", async (...args: any[]) => {
-     const [country, lease] = args;
-    return await services.tpnService.connect(country, lease);
+    return await services.tpnService.connect(args[0].country, args[0].lease);
   });
 
   ipcMainHandler("checkStatus", async () => {
