@@ -58,7 +58,6 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({
   // Format lease time remaining
   const formatLeaseTime = () => {
     if (remainingSeconds <= 0) return "Disconnecting...";
-
     const hours = Math.floor(remainingSeconds / 3600);
     const minutes = Math.floor((remainingSeconds % 3600) / 60);
     const seconds = remainingSeconds % 60;
@@ -165,7 +164,12 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({
       {/* IP Address */}
       {connectionInfo?.currentIP && (
         <div className="text-xs sm:text-sm text-gray-300 mb-2">
-          IP: {connectionInfo.currentIP}
+          Original IP: {connectionInfo.currentIP}
+        </div>
+      )}
+      {connectionInfo?.currentIP && (
+        <div className="text-xs sm:text-sm text-gray-300 mb-2">
+         Current IP: {connectionInfo.currentIP}
         </div>
       )}
       {/* Lease time */}
