@@ -4,9 +4,9 @@ import {
   getCountryCodeByName,
   capitalizeWords,
 } from "../utils/countryUtils";
-import { Oval } from "react-loader-spinner";
 import toast from "react-hot-toast";
 import { leaseDurations } from "../utils/connection";
+import { PuffLoader } from "react-spinners";
 export interface SidebarProps {
   selectedCountry: { name: string; flag: string } | null;
   setSelectedCountry: (country: { name: string; flag: string } | null) => void;
@@ -34,7 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   useEffect(() => {
     let retryTimeout: NodeJS.Timeout | null = null;
     let cancelled = false;
-  
+
     async function fetchCountries() {
       setLoading(true);
       setError(false);
@@ -63,48 +63,51 @@ const Sidebar: React.FC<SidebarProps> = ({
         setError(true);
         setCountries([]);
       }
-  
+
       if (!cancelled) {
         retryTimeout = setTimeout(fetchCountries, 2000);
       }
-  
+
       setLoading(false);
     }
-  
+
     // Initial fetch on load
     fetchCountries();
-  
+
     return () => {
       cancelled = true;
       if (retryTimeout) clearTimeout(retryTimeout);
     };
   }, []); // ← Only runs on mount
-  
+
   useEffect(() => {
-    if(loading) return;
+    if (loading) return;
     const intervalId = setInterval(() => {
       if (window.electron && window.electron.getCountries) {
-        window.electron.getCountries().then((countryNames) => {
-          if (Array.isArray(countryNames) && countryNames.length > 0) {
-            setCountries(
-              countryNames.map((name: string) => {
-                const code = getCountryCodeByName(name);
-                return {
-                  name,
-                  flag: code ? codeToFlagEmoji(code) : "🏳️",
-                };
-              })
-            );
-          }
-        }).catch(() => {
-          // Optional: silent catch for background polling
-        });
+        window.electron
+          .getCountries()
+          .then((countryNames) => {
+            if (Array.isArray(countryNames) && countryNames.length > 0) {
+              setCountries(
+                countryNames.map((name: string) => {
+                  const code = getCountryCodeByName(name);
+                  return {
+                    name,
+                    flag: code ? codeToFlagEmoji(code) : "🏳️",
+                  };
+                })
+              );
+            }
+          })
+          .catch(() => {
+            // Optional: silent catch for background polling
+          });
       }
     }, 600000); // every 10 minutes
-  
+
     return () => clearInterval(intervalId);
   }, []); // ← Also runs on mount, but sets up background polling
-  
+
   const handleConnect = async () => {
     if (!selectedCountry || !selectedLease) return;
 
@@ -185,17 +188,9 @@ const Sidebar: React.FC<SidebarProps> = ({
             />
             {loading ? (
               <div className="flex flex-col items-center justify-center py-8 gap-3">
-                <Oval
-                  height={40}
-                  width={40}
-                  color="#3b82f6"
-                  wrapperStyle={{}}
-                  wrapperClass=""
-                  visible={true}
-                  ariaLabel="oval-loading"
-                  secondaryColor="#1e40af"
-                  strokeWidth={2}
-                  strokeWidthSecondary={2}
+              <PuffLoader
+                  size={50}
+                  color="#ffffff"
                 />
                 <span className="text-gray-400 text-sm">
                   Loading countries...
@@ -276,17 +271,9 @@ const Sidebar: React.FC<SidebarProps> = ({
           >
             {connecting ? (
               <>
-                <Oval
-                  height={16}
-                  width={16}
+                <PuffLoader
+                  size={50}
                   color="#ffffff"
-                  wrapperStyle={{}}
-                  wrapperClass=""
-                  visible={true}
-                  ariaLabel="connecting"
-                  secondaryColor="#ffffff"
-                  strokeWidth={2}
-                  strokeWidthSecondary={2}
                 />
                 CONNECTING...
               </>
