@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { capitalizeWords } from "../utils/countryUtils";
-import { Oval } from "react-loader-spinner";
 import toast from "react-hot-toast";
 import { startSpeedMonitoring } from "../utils/networkUtils";
 import { FiUpload, FiDownload } from "react-icons/fi";
+import { PuffLoader } from "react-spinners";
 
 interface ConnectedCardProps {
   country: { name: string; flag: string } | null;
@@ -85,7 +85,8 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({
     } else {
       setRemainingSeconds(0);
       setDisconnecting(true);
-      const disconnectPromise = window.electron.disconnect();ß
+      const disconnectPromise = window.electron.disconnect();
+      ß;
       localStorage.removeItem("tpn-connected-country");
       toast.promise(disconnectPromise, {
         loading: "Disconnecting from VPN...",
@@ -166,7 +167,7 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({
       )}
       {connectionInfo?.currentIP && (
         <div className="text-xs sm:text-sm text-gray-300 mb-2">
-         Current IP: {connectionInfo.currentIP}
+          Current IP: {connectionInfo.currentIP}
         </div>
       )}
       {/* Lease time */}
@@ -184,18 +185,7 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({
       >
         {disconnecting ? (
           <>
-            <Oval
-              height={16}
-              width={16}
-              color="#ffffff"
-              wrapperStyle={{}}
-              wrapperClass=""
-              visible={true}
-              ariaLabel="disconnecting"
-              secondaryColor="#ffffff"
-              strokeWidth={2}
-              strokeWidthSecondary={2}
-            />
+            <PuffLoader size={50} color="#ffffff" />
             DISCONNECTING...
           </>
         ) : (
