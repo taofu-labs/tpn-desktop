@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { capitalizeWords } from "../utils/countryUtils";
-import { Oval } from "react-loader-spinner";
 import toast from "react-hot-toast";
 import { startSpeedMonitoring } from "../utils/networkUtils";
 import { FiUpload, FiDownload } from "react-icons/fi";
+import { PuffLoader } from "react-spinners";
+import Tippy from "@tippyjs/react";
+import "tippy.js/dist/tippy.css"; // Import base styles
 
 interface ConnectedCardProps {
   country: { name: string; flag: string } | null;
@@ -85,7 +87,8 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({
     } else {
       setRemainingSeconds(0);
       setDisconnecting(true);
-      const disconnectPromise = window.electron.disconnect();ß
+      const disconnectPromise = window.electron.disconnect();
+      ß;
       localStorage.removeItem("tpn-connected-country");
       toast.promise(disconnectPromise, {
         loading: "Disconnecting from VPN...",
@@ -135,14 +138,18 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({
           className="h-6 sm:h-8 w-auto"
         />
         <div className="ml-auto flex gap-2">
-          <span className="bg-[#232F4B] text-blue-300 text-xs px-2 py-1 rounded font-mono flex items-center gap-1">
-            <FiUpload className="w-3 h-3" />
-            {isMeasuring ? "..." : `${networkSpeeds.up.toFixed(1)}M`}
-          </span>
-          <span className="bg-[#232F4B] text-blue-300 text-xs px-2 py-1 rounded font-mono flex items-center gap-1">
-            <FiDownload className="w-3 h-3" />
-            {isMeasuring ? "..." : `${networkSpeeds.down.toFixed(1)}M`}
-          </span>
+          <Tippy content="Upload Speed (Mbps)" placement="bottom">
+            <span className="bg-[#232F4B] cursor-pointer text-blue-300 text-xs px-2 py-1 rounded font-mono flex items-center gap-1">
+              <FiUpload className="w-3 h-3" />
+              {isMeasuring ? "..." : `${networkSpeeds.up.toFixed(1)}M`}
+            </span>
+          </Tippy>
+          <Tippy content="Download Speed (Mbps)" placement="bottom">
+            <span className="bg-[#232F4B] text-blue-300 text-xs px-2 py-1 cursor-pointer rounded font-mono flex items-center gap-1">
+              <FiDownload className="w-3 h-3" />
+              {isMeasuring ? "..." : `${networkSpeeds.down.toFixed(1)}M`}
+            </span>
+          </Tippy>
         </div>
       </div>
       {/* Connected status */}
@@ -166,7 +173,7 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({
       )}
       {connectionInfo?.currentIP && (
         <div className="text-xs sm:text-sm text-gray-300 mb-2">
-         Current IP: {connectionInfo.currentIP}
+          Current IP: {connectionInfo.currentIP}
         </div>
       )}
       {/* Lease time */}
@@ -184,18 +191,7 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({
       >
         {disconnecting ? (
           <>
-            <Oval
-              height={16}
-              width={16}
-              color="#ffffff"
-              wrapperStyle={{}}
-              wrapperClass=""
-              visible={true}
-              ariaLabel="disconnecting"
-              secondaryColor="#ffffff"
-              strokeWidth={2}
-              strokeWidthSecondary={2}
-            />
+            <PuffLoader size={30} color="#ffffff" />
             DISCONNECTING...
           </>
         ) : (
