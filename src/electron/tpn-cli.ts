@@ -364,6 +364,17 @@ export const connect = async (
 }
 
 export const listCountries: any = async (): Promise<string[]> => {
+
+  const callApi = async (url: string, options?: RequestInit) => {
+  const response = await fetch(url, {
+    headers: { 'Content-Type': 'application/json' },
+    ...options
+  });
+  
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
+};
+
   let command = `${tpn} countries`
   //log(`Executing command: ${command}`)
 
