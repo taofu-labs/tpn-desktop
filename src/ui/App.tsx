@@ -186,6 +186,7 @@ function App() {
           <MapView
             connectedCountry={connected ? selectedCountry : null}
             selectedCountry={selectedCountry}
+            setSelectedCountry={setSelectedCountry}
           />
         </div>
 
