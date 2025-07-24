@@ -9,6 +9,7 @@ import {
 import "leaflet/dist/leaflet.css";
 import { countryData } from "./countryData";
 import { serverIcon, selectedIcon, connectedIcon } from "./utils/mapUtils";
+import { codeToFlagEmoji, getCountryCodeByName } from "./utils/countryUtils";
 
 interface Country {
   name: string;
@@ -17,18 +18,23 @@ interface Country {
 
 interface MapViewProps {
   connectedCountry: Country | null;
-  selectedCountry?: Country | null; // New prop for selected country
+  selectedCountry?: Country | null;
+  setSelectedCountry: any | null; // New prop for selected country
 }
 
 // Component to handle map zoom animations
 const MapController: React.FC<{
   selectedCountry: Country | null;
   connectedCountry: Country | null;
+  setSelectedCountry: any | null;
 }> = ({ selectedCountry, connectedCountry }) => {
   const map = useMap();
   const lastSelectedCountry = useRef<string | null>(null);
   const normalizeCountryName = (name: string) => {
-    if (name.toLowerCase() === "hong kong sar china" || name.toLowerCase() === "Tai") {
+    if (
+      name.toLowerCase() === "hong kong sar china" ||
+      name.toLowerCase() === "Tai"
+    ) {
       return "china";
     }
     return name.toLowerCase();
@@ -104,9 +110,16 @@ const MapController: React.FC<{
 const ResponsiveMap: React.FC<MapViewProps> = ({
   connectedCountry,
   selectedCountry,
+  setSelectedCountry,
 }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
+
+  const selectCountry = (country: any) => {
+    const countryCode = getCountryCodeByName(country.name);
+    const countryFlag = codeToFlagEmoji(String(countryCode));
+    setSelectedCountry({ name: country.name, flag: countryFlag });
+  };
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -137,8 +150,8 @@ const ResponsiveMap: React.FC<MapViewProps> = ({
     zoom: getZoomLevel(),
     scrollWheelZoom: false,
     doubleClickZoom: false,
-    dragging: false,
-    touchZoom: false,
+    dragging: true,
+    touchZoom: true,
     keyboard: false,
     zoomControl: false,
   };
@@ -166,6 +179,7 @@ const ResponsiveMap: React.FC<MapViewProps> = ({
       <MapController
         selectedCountry={selectedCountry || null}
         connectedCountry={connectedCountry}
+        setSelectedCountry={setSelectedCountry}
       />
       <TileLayer
         url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
@@ -208,6 +222,12 @@ const ResponsiveMap: React.FC<MapViewProps> = ({
             position={[country.lat, country.lng]}
             // @ts-expect-error react-leaflet v5 does not type icon prop
             icon={serverIcon}
+            eventHandlers={{
+              click: () => {
+                selectCountry(country);
+                // You can also trigger a popup, route, or state update here
+              },
+            }}
           >
             <Tooltip>
               {country.name}{" "}
@@ -225,6 +245,7 @@ const ResponsiveMap: React.FC<MapViewProps> = ({
           key={selectedCountryData.code + "-selected"}
           position={[selectedCountryData.lat, selectedCountryData.lng]}
           // @ts-expect-error react-leaflet v5 does not type icon prop
+
           icon={selectedIcon}
         >
           <Tooltip>
