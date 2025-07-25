@@ -98,17 +98,6 @@ npm run dist:linux
 ```
 
 ---
-
-## 📁 Project Structure Overview
-
-```
-src/
-├── electron/           # Electron main process code (TypeScript)
-│   └── tsconfig.json   # Electron-specific TypeScript config
-├── renderer/           # React frontend (Vite powered)
-└── ...
-```
-
 ---
 
 ## ✅ Script Summary
