@@ -31,7 +31,7 @@ interface IPInfo {
 }
 
 export interface CountryData {
-  country: string
+  name: string
   code: string
 }
 
@@ -397,6 +397,21 @@ export const connect = async (
   throw new Error('Failed to parse connection info')
 }
 
+export const cancel = async (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    // Replace 'tpn' with your actual binary name if needed
+    exec("pkill -f 'tpn connect'", (error, stdout, stderr) => {
+      if (error) {
+        console.error("Error cancelling VPN:", error.message);
+        return resolve(false);
+      }
+
+      console.log("VPN process cancelled.");
+      resolve(true);
+    });
+  });
+};
+
 export const listCountries: any = async (): Promise<CountryData[]> => {
   try {
     const apiResponse = await callApi<ApiResponse>(
@@ -419,7 +434,7 @@ export const listCountries: any = async (): Promise<CountryData[]> => {
 
     const countries: CountryData[] = countryEntries.map(([code, name]) => {
       return {
-        country: name,
+        name: name,
         code: code,
       }
     })

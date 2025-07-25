@@ -88,7 +88,6 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({
       setRemainingSeconds(0);
       setDisconnecting(true);
       const disconnectPromise = window.electron.disconnect();
-      ß;
       localStorage.removeItem("tpn-connected-country");
       toast.promise(disconnectPromise, {
         loading: "Disconnecting from VPN...",

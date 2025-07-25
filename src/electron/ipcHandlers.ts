@@ -16,6 +16,7 @@ export interface IpcServices {
     connect(country: string, lease?: number): Promise<ConnectionInfo>;
     checkStatus(): Promise<StatusInfo>;
     disconnect(): Promise<DisconnectInfo>;
+    cancel(): Promise<boolean>;
   },
   getMainWindow(): BrowserWindow;
   getNetworkspeed(): Promise<any>;
@@ -59,6 +60,10 @@ export function initializeIpcHandlers(services: IpcServices): void {
 
   ipcMainHandler("disconnect", async () => {
     return await services.tpnService.disconnect();
+  });
+
+  ipcMainHandler("cancel", async () => {
+    return await services.tpnService.cancel();
   });
 
    ipcMainHandler("getNetworkInfo", async () => {

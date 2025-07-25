@@ -18,6 +18,10 @@ electron.contextBridge.exposeInMainWorld("electron", {
     return await ipcInvoke('disconnect');
   },
 
+  cancel: async (): Promise<boolean> => {
+    return await ipcInvoke('cancel');
+  },
+
    startSpeedTest: async (): Promise<boolean> => {
     return await ipcInvoke('startSpeedTest');
   },
