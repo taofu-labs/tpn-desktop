@@ -98,7 +98,6 @@ npm run dist:linux
 ```
 
 ---
----
 
 ## ✅ Script Summary
 
