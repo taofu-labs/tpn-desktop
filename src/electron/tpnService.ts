@@ -1,4 +1,4 @@
-import { connect, listCountries, checkStatus, disconnect, initialize_tpn } from './tpn-cli.js'
+import { connect, listCountries, checkStatus, disconnect, initialize_tpn, cancel} from './tpn-cli.js'
 import type { ConnectionInfo, StatusInfo } from './tpn-cli.js'
 
 interface DisconnectInfo {
@@ -20,6 +20,10 @@ export const tpnService = {
 
   async connect(country: string = "any", lease?: number): Promise<ConnectionInfo>  {
     return await connect(country, lease)
+  },
+
+  async cancel(): Promise<boolean>  {
+    return await cancel()
   },
 
   async checkStatus(): Promise<StatusInfo> {

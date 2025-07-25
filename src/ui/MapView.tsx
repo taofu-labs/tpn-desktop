@@ -19,7 +19,9 @@ interface Country {
 interface MapViewProps {
   connectedCountry: Country | null;
   selectedCountry?: Country | null;
-  setSelectedCountry: any | null; // New prop for selected country
+  setSelectedCountry: any | null; // New prop for selected count
+  connected: boolean;
+  countries: any[];
 }
 
 // Component to handle map zoom animations
@@ -27,25 +29,18 @@ const MapController: React.FC<{
   selectedCountry: Country | null;
   connectedCountry: Country | null;
   setSelectedCountry: any | null;
-}> = ({ selectedCountry, connectedCountry }) => {
+  supportedCountries: any[];
+}> = ({ selectedCountry, connectedCountry, supportedCountries }) => {
   const map = useMap();
   const lastSelectedCountry = useRef<string | null>(null);
-  const normalizeCountryName = (name: string) => {
-    if (
-      name.toLowerCase() === "hong kong sar china" ||
-      name.toLowerCase() === "Tai"
-    ) {
-      return "china";
-    }
-    return name.toLowerCase();
-  };
+  const normalizeCountryName = (name: string) => name.toLowerCase();
 
   useEffect(() => {
     if (
       selectedCountry &&
       selectedCountry.name !== lastSelectedCountry.current
     ) {
-      const countryDataItem = countryData.find(
+      const countryDataItem = supportedCountries.find(
         (c) =>
           c.name.toLowerCase() === normalizeCountryName(selectedCountry.name)
       );
@@ -66,7 +61,7 @@ const MapController: React.FC<{
       }
     } else if (!selectedCountry && connectedCountry) {
       // If no country is selected but we're connected, zoom to connected country
-      const countryDataItem = countryData.find(
+      const countryDataItem = supportedCountries.find(
         (c) => c.name.toLowerCase() === connectedCountry.name.toLowerCase()
       );
 
@@ -103,7 +98,6 @@ const MapController: React.FC<{
       });
     }
   }, [selectedCountry, connectedCountry, map]);
-
   return null; // This component doesn't render anything
 };
 
@@ -111,9 +105,21 @@ const ResponsiveMap: React.FC<MapViewProps> = ({
   connectedCountry,
   selectedCountry,
   setSelectedCountry,
+  connected,
+  countries,
 }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
+
+  // Filter countryData to only supported countries
+  function filterSupportedCountriesByCode() {
+    const filterCode = countries.map((c) => c.code.toLowerCase());
+
+    return countryData.filter((country) =>
+      filterCode.includes(country.code.toLowerCase())
+    );
+  }
+  const supportedCountries = filterSupportedCountriesByCode();
 
   const selectCountry = (country: any) => {
     const countryCode = getCountryCodeByName(country.name);
@@ -150,20 +156,20 @@ const ResponsiveMap: React.FC<MapViewProps> = ({
     zoom: getZoomLevel(),
     scrollWheelZoom: false,
     doubleClickZoom: false,
-    dragging: true,
+    dragging: connected ? false : true,
     touchZoom: true,
     keyboard: false,
     zoomControl: false,
   };
 
   const connectedCountryData = connectedCountry
-    ? countryData.find(
+    ? supportedCountries.find(
         (c) => c.name.toLowerCase() === connectedCountry.name.toLowerCase()
       )
     : null;
 
   const selectedCountryData = selectedCountry
-    ? countryData.find(
+    ? supportedCountries.find(
         (c) => c.name.toLowerCase() === selectedCountry.name.toLowerCase()
       )
     : null;
@@ -180,6 +186,7 @@ const ResponsiveMap: React.FC<MapViewProps> = ({
         selectedCountry={selectedCountry || null}
         connectedCountry={connectedCountry}
         setSelectedCountry={setSelectedCountry}
+        supportedCountries={supportedCountries}
       />
       <TileLayer
         url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
@@ -203,7 +210,7 @@ const ResponsiveMap: React.FC<MapViewProps> = ({
         opacity={0}
       />
 
-      {countryData.map((country, index) => {
+      {supportedCountries.map((country, index) => {
         // Skip if this is the connected country (it has its own special marker)
         if (
           connectedCountryData &&
@@ -224,6 +231,7 @@ const ResponsiveMap: React.FC<MapViewProps> = ({
             icon={serverIcon}
             eventHandlers={{
               click: () => {
+                if (connected) return;
                 selectCountry(country);
                 // You can also trigger a popup, route, or state update here
               },
