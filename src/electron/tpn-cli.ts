@@ -26,8 +26,17 @@ export interface DisconnectInfo {
 }
 
 interface IPInfo {
-  originalIP: string;
-  currentIP: string;
+  originalIP: string
+  currentIP: string
+}
+
+export interface CountryData {
+  country: string
+  code: string
+}
+
+interface ApiResponse {
+  miner_country_code_to_name: Record<string, string>
 }
 
 const { USER } = process.env
@@ -57,6 +66,32 @@ const checkForErrors = (output: string): void => {
       const errorMessage = pattern.source.includes('(.+)') ? match[1] : match[0]
       throw new Error(errorMessage)
     }
+  }
+}
+
+const callApi = async <T>(url: string, options?: RequestInit): Promise<T> => {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 10000)
+
+  try {
+    const response = await fetch(url, {
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      ...options,
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`API call failed: ${error.message}`)
+    }
+    throw new Error('Unknown API error')
+  } finally {
+    clearTimeout(timeoutId)
   }
 }
 
@@ -307,17 +342,17 @@ export const initialize_tpn = async (): Promise<void> => {
 
 const extractIP = (output: string): IPInfo => {
   const ipMatch = output.match(/IP address changed from ([\d.]+) to ([\d.]+)/)
-  
+
   if (ipMatch) {
     return {
       originalIP: ipMatch[1],
-      currentIP: ipMatch[2]
+      currentIP: ipMatch[2],
     }
   }
-  
+
   return {
     originalIP: '',
-    currentIP: ''
+    currentIP: '',
   }
 }
 export const connect = async (
@@ -336,7 +371,6 @@ export const connect = async (
 
   const result = await exec_async(command, 60000)
   log(`Update result: `, result)
-
 
   if (result) {
     checkForErrors(result)
@@ -363,23 +397,43 @@ export const connect = async (
   throw new Error('Failed to parse connection info')
 }
 
-export const listCountries: any = async (): Promise<string[]> => {
-  let command = `${tpn} countries`
-  //log(`Executing command: ${command}`)
+export const listCountries: any = async (): Promise<CountryData[]> => {
+  try {
+    const apiResponse = await callApi<ApiResponse>(
+      'http://34.130.136.222:3000/protocol/sync/stats',
+    )
 
-  const result = await exec_async(command, 60000, true)
-  log(`Update result: `, typeof result)
-  if (typeof result === 'string') {
-    try {
-      return JSON.parse(result)
-    } catch (e) {
-      log('Failed to parse countries JSON:', e)
-      return []
+    if (!apiResponse?.miner_country_code_to_name) {
+      throw new Error(
+        'Invalid API response: missing miner_country_code_to_name',
+      )
     }
-  }
 
-  log('Countries command timed out')
-  return []
+    const countryEntries = Object.entries(
+      apiResponse.miner_country_code_to_name,
+    )
+
+    if (countryEntries.length === 0) {
+      throw new Error('No countries found')
+    }
+
+    const countries: CountryData[] = countryEntries.map(([code, name]) => {
+      return {
+        country: name,
+        code: code,
+      }
+    })
+
+    console.log('Processed countries:', countries)
+    log(`Successfully fetched ${countries.length} countries from API`)
+
+    return countries
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error occurred'
+    log(`Failed to fetch countries: ${errorMessage}`)
+    throw new Error(`Could not retrieve countries list: ${errorMessage}`)
+  }
 }
 
 export const checkStatus = async (): Promise<StatusInfo> => {
