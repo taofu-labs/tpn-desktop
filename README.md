@@ -1,7 +1,5 @@
 # React + TypeScript + Vite + Electron
 
----
-
 ## 📦 Prerequisites
 
 - Node.js v20+
