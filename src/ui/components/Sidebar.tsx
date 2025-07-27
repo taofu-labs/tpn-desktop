@@ -1,10 +1,5 @@
-import React, { useState, useEffect } from "react";
-import {
-  codeToFlagEmoji,
-  getCountryCodeByName,
-  capitalizeWords,
-  getCodes,
-} from "../utils/countryUtils";
+import React, { useState } from "react";
+import { capitalizeWords } from "../utils/countryUtils";
 import toast from "react-hot-toast";
 import { leaseDurations } from "../utils/connection";
 import { ConnectCard } from "./ConnectCard";
@@ -15,6 +10,9 @@ export interface SidebarProps {
   connected: boolean;
   setConnected: (connected: boolean) => void;
   setConnectionInfo: (info: ConnectionInfo) => void;
+  countries:any;
+  isInitializing: boolean,
+  error: any
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -23,93 +21,90 @@ const Sidebar: React.FC<SidebarProps> = ({
   connected,
   setConnected,
   setConnectionInfo,
+  countries,
+  isInitializing,
+  error
 }) => {
   const [search, setSearch] = useState("");
   const [selectedLease, setSelectedLease] = useState("");
-  const [countries, setCountries] = useState<{ name: string; flag: string }[]>(
-    []
-  );
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [canceling, setCanceling] = useState(false);
 
-  useEffect(() => {
-    let retryTimeout: NodeJS.Timeout | null = null;
-    let cancelled = false;
+  // useEffect(() => {
+  //   let retryTimeout: NodeJS.Timeout | null = null;
+  //   let cancelled = false;
 
-    async function fetchCountries() {
-      setLoading(true);
-      setError(false);
-      try {
-        if (window.electron && window.electron.getCountries) {
-          const countryNames = await window.electron.getCountries();
-          if (Array.isArray(countryNames) && countryNames.length > 0) {
-            setCountries(
-              countryNames.map((name: string) => {
-                const code = getCountryCodeByName(name);
-                return {
-                  name,
-                  flag: code ? codeToFlagEmoji(code) : "🏳️",
-                };
-              })
-            );
-            setLoading(false);
-            return;
-          } else {
-            setCountries([]);
-          }
-        } else {
-          setCountries([]);
-        }
-      } catch {
-        setError(true);
-        setCountries([]);
-      }
+  //   async function fetchCountries() {
+  //     setLoading(true);
+  //     setError(false);
+  //     try {
+  //       if (window.electron) {
+  //         const countries = await window.electron.getCountries();
+  //         console.log(countries)
+  //         if (Array.isArray(countries) && countries.length > 0) {
+  //           setCountries(
+  //             countries.map((country: any) => {
+  //               return {
+  //                 name: country.name,
+  //                 flag: codeToFlagEmoji(country.code),
+  //               };
+  //             })
+  //           );
+  //           setLoading(false);
+  //           return;
+  //         } else {
+  //           setCountries([]);
+  //         }
+  //       } else {
+  //         setCountries([]);
+  //       }
+  //     } catch {
+  //       setError(true);
+  //       setCountries([]);
+  //     }
 
-      if (!cancelled) {
-        retryTimeout = setTimeout(fetchCountries, 2000);
-      }
+  //     if (!cancelled) {
+  //       retryTimeout = setTimeout(fetchCountries, 2000);
+  //     }
 
-      setLoading(false);
-    }
+  //     setLoading(false);
+  //   }
 
-    // Initial fetch on load
-    fetchCountries();
+  //   // Initial fetch on load
+  //   fetchCountries();
 
-    return () => {
-      cancelled = true;
-      if (retryTimeout) clearTimeout(retryTimeout);
-    };
-  }, []); // ← Only runs on mount
+  //   return () => {
+  //     cancelled = true;
+  //     if (retryTimeout) clearTimeout(retryTimeout);
+  //   };
+  // }, []); // ← Only runs on mount
 
-  useEffect(() => {
-    if (loading) return;
-    const intervalId = setInterval(() => {
-      if (window.electron && window.electron.getCountries) {
-        window.electron
-          .getCountries()
-          .then((countryNames) => {
-            if (Array.isArray(countryNames) && countryNames.length > 0) {
-              setCountries(
-                countryNames.map((name: string) => {
-                  const code = getCountryCodeByName(name);
-                  return {
-                    name,
-                    flag: code ? codeToFlagEmoji(code) : "🏳️",
-                  };
-                })
-              );
-            }
-          })
-          .catch(() => {
-            // Optional: silent catch for background polling
-          });
-      }
-    }, 600000); // every 10 minutes
+  // useEffect(() => {
+  //   if (loading) return;
+  //   const intervalId = setInterval(() => {
+  //     if (window.electron) {
+  //       window.electron
+  //         .getCountries()
+  //         .then((countries) => {
+  //           if (Array.isArray(countries) && countries.length > 0) {
+  //             setCountries(
+  //               countries.map((country: any) => {
+  //                 return {
+  //                   name: country.name,
+  //                   flag: codeToFlagEmoji(country.code),
+  //                 };
+  //               })
+  //             );
+  //           }
+  //         })
+  //         .catch(() => {
+  //           // Optional: silent catch for background polling
+  //         });
+  //     }
+  //   }, 600000); // every 10 minutes
 
-    return () => clearInterval(intervalId);
-  }, []); // ← Also runs on mount, but sets up background polling
+  //   return () => clearInterval(intervalId);
+  // }, []); // ← Also runs on mount, but sets up background polling
 
   const handleConnect = async () => {
     if (!selectedCountry || !selectedLease) return;
@@ -122,7 +117,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     });
 
     toast.promise(connectPromise, {
-      loading: `Connecting to ${capitalizeWords(selectedCountry.name)}...`,
+      loading: `${canceling ? "Canceling connection to" : "Connecting to"} ${capitalizeWords(selectedCountry.name)}...`,
       success: (connectionInfo) => {
         if (connectionInfo.connected) {
           localStorage.setItem(
@@ -139,7 +134,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       },
       error: (error) => {
         console.error("Connection error:", error);
-        return `Failed to connect: Please try agian.`;
+        return `Failed to connect: ${canceling ? "You cancelled the connection.": "Please try agian."}`;
       },
     });
 
@@ -157,7 +152,40 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  const filteredCountries = countries.filter((c) =>
+  const handleCancel = async () => {
+    setConnecting(false);
+    setCanceling(true);
+    const cancelPromise = window.electron.cancel();
+
+    toast.promise(cancelPromise, {
+      loading: "Disconnecting from VPN...",
+      success: (result: any) => {
+        if (result.success) {
+          setConnected(false);
+          return "Successfully cancelled VPN connection";
+        } else {
+          throw new Error("Disconnect failed");
+        }
+      },
+      // error: (error) => {
+      //   console.error("Cancel error:", error);
+      //   return `Failed to cancel: Please restart application.`;
+      // },
+    });
+
+    try {
+      const result: any = await cancelPromise;
+      if (result.success) {
+        setConnected(false);
+      }
+    } catch (error) {
+      console.error("Cancel error:", error);
+    } finally {
+      setCanceling(false);
+    }
+  };
+
+  const filteredCountries = countries.filter((c: any) =>
     c.name.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -183,17 +211,17 @@ const Sidebar: React.FC<SidebarProps> = ({
         ) : (
           <SelectCountry
             search={search}
-            loading={loading}
             setSearch={setSearch}
-            error={error}
             filteredCountries={filteredCountries}
             selectedCountry={selectedCountry}
             setSelectedCountry={setSelectedCountry}
+            isInitializing={isInitializing}
+            error={error}
           />
         )}
       </div>
       {/* Selected Country & Connect Card (only show if selectedCountry, not connected, and not loading) */}
-      {selectedCountry && !connected && !loading && (
+      {selectedCountry && !connected  && countries.length > 0 && (
         <ConnectCard
           selectedCountry={selectedCountry}
           selectedLease={selectedLease}
@@ -201,6 +229,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           setSelectedLease={setSelectedLease}
           leaseDurations={leaseDurations}
           canceling={canceling}
+          handleCancel={handleCancel}
           handleConnect={handleConnect}
         />
       )}
