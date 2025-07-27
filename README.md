@@ -4,7 +4,7 @@
 
 ## 📦 Prerequisites
 
-- Node.js v16+
+- Node.js v20+
 - npm v7+
 - [Playwright](https://playwright.dev/docs/intro) (for e2e tests)
 - [Electron Builder](https://www.electron.build/) (already included via scripts)
@@ -65,13 +65,13 @@ npm run lint
 
 ## 📦 Building for Production
 
-### Build the Entire App (React + Electron)
+### Build the React App
 ```bash
 npm run build
 ```
 
 This:
-- Compiles TypeScript (including Electron backend)
+- Compiles TypeScript
 - Builds the React frontend using Vite
 
 ---
@@ -106,7 +106,7 @@ npm run dist:linux
 | `dev`                | Starts dev server and Electron together |
 | `dev:react`          | Starts only Vite frontend               |
 | `dev:electron`       | Starts only Electron (with TS transpile)|
-| `build`              | Builds frontend and Electron TS         |
+| `build`              | Builds frontend                         |
 | `transpile:electron` | Type-checks & compiles Electron code    |
 | `dist:mac`           | Builds macOS ARM64 binary               |
 | `dist:win`           | Builds Windows x64 binary               |
