@@ -4,17 +4,18 @@ import { capitalizeWords } from "../utils/countryUtils";
 interface Country {
   name: string;
   flag: string;
-};
+  code: string;
+}
 
-interface SelectCountryProps  {
+interface SelectCountryProps {
   search: string;
   setSearch: (payload: string) => void;
   filteredCountries: Country[];
-  selectedCountry: Country | null ;
+  selectedCountry: Country | null;
   setSelectedCountry: (payload: Country) => void;
   isInitializing: boolean;
   error: any;
-};
+}
 
 export const SelectCountry: React.FC<SelectCountryProps> = ({
   search,
@@ -23,7 +24,7 @@ export const SelectCountry: React.FC<SelectCountryProps> = ({
   selectedCountry,
   setSelectedCountry,
   isInitializing,
-  error
+  error,
 }) => {
   return (
     <>
