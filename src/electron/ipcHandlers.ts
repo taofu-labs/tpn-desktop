@@ -1,6 +1,6 @@
 import { BrowserWindow } from "electron";
 import type { ConnectionInfo, StatusInfo } from "./tpn-cli.js";
-import speedTest from "speedtest-net";
+
 
 interface DisconnectInfo {
   success: boolean;
@@ -22,28 +22,28 @@ export interface IpcServices {
   getNetworkspeed(): Promise<any>;
 }
 
-const runSpeedTest = async () => {  
-  try {  
-    await speedTest({  
-      acceptLicense: true,  
-      progress: (event: any) => {  
-        switch (event.type) {  
-          case 'download':  
-            const downloadSpeed = event.download.bandwidth; // bytes/sec  
-            // Update your UI with download speed  
-            break;  
-          case 'upload':  
-            const uploadSpeed = event.upload.bandwidth; // bytes/sec  
-            // Update your UI with upload speed  
-            break;  
-        }  
-      }  
-    });  
-  } catch (err: any) {  
+// const runSpeedTest = async () => {  
+//   try {  
+//     await speedTest({  
+//       acceptLicense: true,  
+//       progress: (event: any) => {  
+//         switch (event.type) {  
+//           case 'download':  
+//             const downloadSpeed = event.download.bandwidth; // bytes/sec  
+//             // Update your UI with download speed  
+//             break;  
+//           case 'upload':  
+//             const uploadSpeed = event.upload.bandwidth; // bytes/sec  
+//             // Update your UI with upload speed  
+//             break;  
+//         }  
+//       }  
+//     });  
+//   } catch (err: any) {  
     
-    console.error(err.message);  
-  }  
-};
+//     console.error(err.message);  
+//   }  
+// };
 
 export function initializeIpcHandlers(services: IpcServices): void {
   ipcMainHandler("getCountries", async () => {
@@ -73,14 +73,14 @@ export function initializeIpcHandlers(services: IpcServices): void {
   ipcMainHandler("startSpeedTest", async () => {
     const mainWindow = services.getMainWindow();
      try {  
-    const result = await speedTest({  
-      acceptLicense: true,  
-      progress: (event: any) => {  
-        // Send real-time updates to React UI  
-        console.log("events", event)
-        mainWindow.webContents.send('speedtest-progress', event);  
-      }  
-    });  
+    // const result = await speedTest({  
+    //   acceptLicense: true,  
+    //   progress: (event: any) => {  
+    //     // Send real-time updates to React UI  
+    //     console.log("events", event)
+    //     mainWindow.webContents.send('speedtest-progress', event);  
+    //   }  
+    // });  
     return true;
 
   } catch (err: any) {  
