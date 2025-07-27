@@ -16,6 +16,7 @@ interface ConnectCountryProps {
   canceling: boolean;
   selectedCountry: Country;
   handleConnect: () => void;
+  handleCancel: () => void;
   leaseDurations: Duration[];
 };
 
@@ -27,6 +28,7 @@ export const ConnectCard: React.FC<ConnectCountryProps> = ({
   leaseDurations,
   canceling,
   handleConnect,
+  handleCancel,
 }) => {
   return (
     <div className="bg-[#181A20] border border-blue-500 shadow-xl p-4 sm:p-6 relative">
@@ -77,6 +79,7 @@ export const ConnectCard: React.FC<ConnectCountryProps> = ({
         <button
           className="w-full py-2 rounded bg-black hover:bg-red-500 text-white font-bold text-xs sm:text-sm tracking-wide transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           disabled={!selectedLease || !connecting || canceling}
+          onClick={handleCancel}
         >
           {canceling ? (
             <small className="flex">

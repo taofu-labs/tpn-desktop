@@ -8,22 +8,22 @@ interface Country {
 
 interface SelectCountryProps  {
   search: string;
-  loading: boolean;
   setSearch: (payload: string) => void;
-  error: boolean;
   filteredCountries: Country[];
   selectedCountry: Country | null ;
   setSelectedCountry: (payload: Country) => void;
+  isInitializing: boolean;
+  error: any;
 };
 
 export const SelectCountry: React.FC<SelectCountryProps> = ({
   search,
-  loading,
   setSearch,
-  error,
   filteredCountries,
   selectedCountry,
   setSelectedCountry,
+  isInitializing,
+  error
 }) => {
   return (
     <>
@@ -34,7 +34,7 @@ export const SelectCountry: React.FC<SelectCountryProps> = ({
         onChange={(e) => setSearch(e.target.value)}
         className="w-full mb-3 px-3 py-2 rounded bg-[#232733] border border-[#2A2E3D] text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
       />
-      {loading ? (
+      {isInitializing ? (
         <div className="flex flex-col items-center justify-center py-8 gap-3">
           <PuffLoader size={50} color="#ffffff" />
           <span className="text-gray-400 text-sm">Loading countries...</span>

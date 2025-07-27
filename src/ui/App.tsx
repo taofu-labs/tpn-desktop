@@ -3,6 +3,7 @@ import { Toaster } from "react-hot-toast";
 import Sidebar from "./components/Sidebar";
 import MapView from "./MapView";
 import ConnectedCard from "./components/ConnectedCard";
+import { codeToFlagEmoji } from "./utils/countryUtils";
 
 interface Country {
   name: string;
@@ -16,6 +17,11 @@ function App() {
     null
   );
   const [isInitializing, setIsInitializing] = useState(true);
+  const [countries, setCountries] = useState<{ name: string; flag: string }[]>(
+    []
+  );
+  const [error, setError] = useState(false);
+
 
   // Initialize app state on startup
   useEffect(() => {
@@ -69,13 +75,90 @@ function App() {
         setConnected(false);
         setConnectionInfo(null);
       } finally {
-        setIsInitializing(false);
+        // setIsInitializing(false);
       }
     };
 
     initializeApp();
   }, []);
 
+
+  useEffect(() => {
+    let retryTimeout: NodeJS.Timeout | null = null;
+    let cancelled = false;
+
+    async function fetchCountries() {
+      setIsInitializing(true);
+      setError(false);
+      try {
+        if (window.electron) {
+          const countries = await window.electron.getCountries();
+          if (Array.isArray(countries) && countries.length > 0) {
+            setCountries(
+              countries.map((country: any) => {
+                return {
+                  name: country.name,
+                  code: country.code,
+                  flag: codeToFlagEmoji(country.code),
+                };
+              })
+            );
+            setIsInitializing(false);
+            return;
+          } else {
+            setCountries([]);
+          }
+        } else {
+          setCountries([]);
+        }
+      } catch {
+        setError(true);
+        setCountries([]);
+      }
+
+      if (!cancelled) {
+        retryTimeout = setTimeout(fetchCountries, 2000);
+      }
+
+      // setIsInitializing(false);
+    }
+
+    // Initial fetch on load
+    fetchCountries();
+
+    return () => {
+      cancelled = true;
+      if (retryTimeout) clearTimeout(retryTimeout);
+    };
+  }, []); // ← Only runs on mount
+
+  useEffect(() => {
+    if (isInitializing) return;
+    const intervalId = setInterval(() => {
+      if (window.electron) {
+        window.electron
+          .getCountries()
+          .then((countries) => {
+            if (Array.isArray(countries) && countries.length > 0) {
+              setCountries(
+                countries.map((country: any) => {
+                  return {
+                    name: country.name,
+                    code: country.code,
+                    flag: codeToFlagEmoji(country.code),
+                  };
+                })
+              );
+            }
+          })
+          .catch(() => {
+            // Optional: silent catch for background polling
+          });
+      }
+    }, 600000); // every 10 minutes
+
+    return () => clearInterval(intervalId);
+  }, []); // ← Also runs on mount, but sets up background polling
   // Save selected country to localStorage
   useEffect(() => {
     if (selectedCountry) {
@@ -187,6 +270,8 @@ function App() {
             connectedCountry={connected ? selectedCountry : null}
             selectedCountry={selectedCountry}
             setSelectedCountry={setSelectedCountry}
+            connected={connected}
+            countries={countries}
           />
         </div>
 
@@ -197,6 +282,9 @@ function App() {
             connected={connected}
             setConnected={setConnected}
             setConnectionInfo={setConnectionInfo}
+            countries={countries}
+            error={error}
+            isInitializing={isInitializing}
           />
         </div>
 
