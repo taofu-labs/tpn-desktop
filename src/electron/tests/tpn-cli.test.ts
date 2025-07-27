@@ -1,8 +1,7 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest'
 import { exec } from 'node:child_process'
-import type { ExecOptions } from 'node:child_process'
 import { initialize_tpn, connect, checkStatus, disconnect, listCountries } from '../tpn-cli.js'
-import { log, alert, wait, confirm } from '../helpers.js'
+import { log, alert} from '../helpers.js'
 import { app } from 'electron'
 
 // Mock all dependencies
@@ -144,7 +143,7 @@ describe('TPN CLI Tests', () => {
       vi.stubEnv('development', 'true')
       vi.stubEnv('skipupdate', 'false')
       
-      vi.mocked(exec).mockImplementation(((command: string, options: any, callback: any) => {
+      vi.mocked(exec).mockImplementation(((_command: string, options: any, callback: any) => {
         const cb = typeof options === 'function' ? options : callback
         cb(null, '', '')
       }) as any)
@@ -160,7 +159,7 @@ describe('TPN CLI Tests', () => {
     test('should connect successfully and parse connection info', async () => {
       const mockOutput = 'IP address changed from 192.168.1.1 to 38.54.29.240\nlease ends in 60 minutes (2024-01-01T12:00:00Z)'
       
-      vi.mocked(exec).mockImplementation(((command: string, options: any, callback: any) => {
+      vi.mocked(exec).mockImplementation(((_command: string, options: any, callback: any) => {
         const cb = typeof options === 'function' ? options : callback
         cb(null, mockOutput, '')
       }) as any)
@@ -178,7 +177,7 @@ describe('TPN CLI Tests', () => {
     test('should handle connection errors', async () => {
       const mockOutput = 'Error: Connection failed'
       
-      vi.mocked(exec).mockImplementation(((command: string, options: any, callback: any) => {
+      vi.mocked(exec).mockImplementation(((_command: string, options: any, callback: any) => {
         const cb = typeof options === 'function' ? options : callback
         cb(null, mockOutput, '')
       }) as any)
@@ -187,7 +186,7 @@ describe('TPN CLI Tests', () => {
     })
 
     test('should handle invalid response format', async () => {
-      vi.mocked(exec).mockImplementation(((command: string, options: any, callback: any) => {
+      vi.mocked(exec).mockImplementation(((_command: string, options: any, callback: any) => {
         const cb = typeof options === 'function' ? options : callback
         cb(null, 'Invalid response', '')
       }) as any)
@@ -200,7 +199,7 @@ describe('TPN CLI Tests', () => {
     test('should parse connected status with lease info', async () => {
       const mockOutput = 'TPN status: Connected (38.54.29.240)\nLease ends in 45 minutes (2024-01-01T12:00:00Z)'
       
-      vi.mocked(exec).mockImplementation(((command: string, options: any, callback: any) => {
+      vi.mocked(exec).mockImplementation(((_command: string, options: any, callback: any) => {
         const cb = typeof options === 'function' ? options : callback
         cb(null, mockOutput, '')
       }) as any)
@@ -218,7 +217,7 @@ describe('TPN CLI Tests', () => {
     test('should parse disconnected status', async () => {
       const mockOutput = 'TPN status: Disconnected (192.168.1.1)'
       
-      vi.mocked(exec).mockImplementation(((command: string, options: any, callback: any) => {
+      vi.mocked(exec).mockImplementation(((_command: string, options: any, callback: any) => {
         const cb = typeof options === 'function' ? options : callback
         cb(null, mockOutput, '')
       }) as any)
@@ -232,7 +231,7 @@ describe('TPN CLI Tests', () => {
     })
 
     test('should handle status parsing errors', async () => {
-      vi.mocked(exec).mockImplementation(((command: string, options: any, callback: any) => {
+      vi.mocked(exec).mockImplementation(((_command: string, options: any, callback: any) => {
         const cb = typeof options === 'function' ? options : callback
         cb(null, 'Invalid status', '')
       }) as any)
@@ -245,7 +244,7 @@ describe('TPN CLI Tests', () => {
     test('should disconnect successfully and parse IP change', async () => {
       const mockOutput = 'Disconnecting TPN\nIP changed back from 38.54.29.240 to 192.168.1.1'
       
-      vi.mocked(exec).mockImplementation(((command: string, options: any, callback: any) => {
+      vi.mocked(exec).mockImplementation(((_command: string, options: any, callback: any) => {
         const cb = typeof options === 'function' ? options : callback
         cb(null, mockOutput, '')
       }) as any)
@@ -263,7 +262,7 @@ describe('TPN CLI Tests', () => {
     test('should handle disconnect without IP change info', async () => {
       const mockOutput = 'Disconnecting TPN'
       
-      vi.mocked(exec).mockImplementation(((command: string, options: any, callback: any) => {
+      vi.mocked(exec).mockImplementation(((_command: string, options: any, callback: any) => {
         const cb = typeof options === 'function' ? options : callback
         cb(null, mockOutput, '')
       }) as any)
@@ -279,7 +278,7 @@ describe('TPN CLI Tests', () => {
     test('should handle disconnect errors', async () => {
       const mockOutput = 'Error: Failed to disconnect'
       
-      vi.mocked(exec).mockImplementation(((command: string, options: any, callback: any) => {
+      vi.mocked(exec).mockImplementation(((_command: string, options: any, callback: any) => {
         const cb = typeof options === 'function' ? options : callback
         cb(null, mockOutput, '')
       }) as any)
@@ -292,7 +291,7 @@ describe('TPN CLI Tests', () => {
     test('should parse countries JSON successfully', async () => {
       const mockCountries = ['us', 'uk', 'ca', 'de']
       
-      vi.mocked(exec).mockImplementation(((command: string, options: any, callback: any) => {
+      vi.mocked(exec).mockImplementation(((_command: string, options: any, callback: any) => {
         const cb = typeof options === 'function' ? options : callback
         cb(null, JSON.stringify(mockCountries), '')
       }) as any)
@@ -303,7 +302,7 @@ describe('TPN CLI Tests', () => {
     })
 
     test('should handle invalid JSON response', async () => {
-      vi.mocked(exec).mockImplementation(((command: string, options: any, callback: any) => {
+      vi.mocked(exec).mockImplementation(((_command: string, options: any, callback: any) => {
         const cb = typeof options === 'function' ? options : callback
         cb(null, 'Invalid JSON', '')
       }) as any)
@@ -314,7 +313,7 @@ describe('TPN CLI Tests', () => {
     })
 
     test('should handle timeout', async () => {
-      vi.mocked(exec).mockImplementation(((command: string, options: any, callback: any) => {
+      vi.mocked(exec).mockImplementation(((_command: string, _options: any, _callback: any) => {
         // Simulate timeout by not calling callback
       }) as any)
 
