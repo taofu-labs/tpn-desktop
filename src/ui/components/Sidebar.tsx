@@ -5,14 +5,20 @@ import { leaseDurations } from "../utils/connection";
 import { ConnectCard } from "./ConnectCard";
 import { SelectCountry } from "./SelectCountry";
 export interface SidebarProps {
-  selectedCountry: { name: string; flag: string } | null;
-  setSelectedCountry: (country: { name: string; flag: string } | null) => void;
+  selectedCountry: {
+    code: string;
+    name: string;
+    flag: string;
+  } | null;
+  setSelectedCountry: (
+    country: { name: string; flag: string; code: string } | null
+  ) => void;
   connected: boolean;
   setConnected: (connected: boolean) => void;
   setConnectionInfo: (info: ConnectionInfo) => void;
-  countries:any;
-  isInitializing: boolean,
-  error: any
+  countries: any;
+  isInitializing: boolean;
+  error: any;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -23,7 +29,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   setConnectionInfo,
   countries,
   isInitializing,
-  error
+  error,
 }) => {
   const [search, setSearch] = useState("");
   const [selectedLease, setSelectedLease] = useState("");
@@ -112,12 +118,14 @@ const Sidebar: React.FC<SidebarProps> = ({
     setConnecting(true);
 
     const connectPromise = window.electron.connectToCountry({
-      country: selectedCountry?.name,
+      country: selectedCountry?.code,
       lease: +selectedLease,
     });
 
     toast.promise(connectPromise, {
-      loading: `${canceling ? "Canceling connection to" : "Connecting to"} ${capitalizeWords(selectedCountry.name)}...`,
+      loading: `${
+        canceling ? "Canceling connection to" : "Connecting to"
+      } ${capitalizeWords(selectedCountry.name)}...`,
       success: (connectionInfo) => {
         if (connectionInfo.connected) {
           localStorage.setItem(
@@ -134,7 +142,9 @@ const Sidebar: React.FC<SidebarProps> = ({
       },
       error: (error) => {
         console.error("Connection error:", error);
-        return `Failed to connect: ${canceling ? "You cancelled the connection.": "Please try agian."}`;
+        return `Failed to connect: ${
+          canceling ? "You cancelled the connection." : "Please try agian."
+        }`;
       },
     });
 
@@ -221,7 +231,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         )}
       </div>
       {/* Selected Country & Connect Card (only show if selectedCountry, not connected, and not loading) */}
-      {selectedCountry && !connected  && countries.length > 0 && (
+      {selectedCountry && !connected && countries.length > 0 && (
         <ConnectCard
           selectedCountry={selectedCountry}
           selectedLease={selectedLease}

@@ -14,6 +14,7 @@ import { codeToFlagEmoji, getCountryCodeByName } from "./utils/countryUtils";
 interface Country {
   name: string;
   flag: string;
+  code: string;
 }
 
 interface MapViewProps {

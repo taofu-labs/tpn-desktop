@@ -8,6 +8,7 @@ import { codeToFlagEmoji } from "./utils/countryUtils";
 interface Country {
   name: string;
   flag: string;
+  code: string;
 }
 
 function App() {
@@ -21,7 +22,6 @@ function App() {
     []
   );
   const [error, setError] = useState(false);
-
 
   // Initialize app state on startup
   useEffect(() => {
@@ -47,7 +47,9 @@ function App() {
         ) {
           const connectionInfo: ConnectionInfo = {
             connected: status.connected,
-            originalIP: JSON.parse(String(localStorage.getItem("tpn-original-ip"))),
+            originalIP: JSON.parse(
+              String(localStorage.getItem("tpn-original-ip"))
+            ),
             currentIP: status.currentIP,
             leaseEndTime: status.leaseEndTime,
             minutesRemaining: status.minutesRemaining,
@@ -81,7 +83,6 @@ function App() {
 
     initializeApp();
   }, []);
-
 
   useEffect(() => {
     let retryTimeout: NodeJS.Timeout | null = null;
@@ -188,7 +189,9 @@ function App() {
           // Convert StatusInfo to ConnectionInfo
           const connectionInfo: ConnectionInfo = {
             connected: status.connected,
-            originalIP: JSON.parse(String(localStorage.getItem("tpn-original-ip"))),
+            originalIP: JSON.parse(
+              String(localStorage.getItem("tpn-original-ip"))
+            ),
             currentIP: status.currentIP,
             leaseEndTime: status.leaseEndTime,
             minutesRemaining: status.minutesRemaining,
