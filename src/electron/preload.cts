@@ -27,7 +27,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
   },
   
  onSpeedTestComplete: (callback: (results: SpeedTestResult) => void) => {
-    electron.ipcRenderer.on('speedtest-complete', (event: Electron.IpcRendererEvent, results: SpeedTestResult) => {
+    electron.ipcRenderer.on('speedtest-complete', (_event: Electron.IpcRendererEvent, results: SpeedTestResult) => {
        callback(results);
     });
   },

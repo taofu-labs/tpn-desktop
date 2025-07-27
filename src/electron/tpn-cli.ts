@@ -1,5 +1,5 @@
 import { app } from 'electron'
-import { exec, spawn } from 'node:child_process'
+import { exec } from 'node:child_process'
 import type { ExecOptions } from 'node:child_process'
 import { log, alert, wait, confirm } from './helpers.js'
 
@@ -50,7 +50,7 @@ const shell_options: ExecOptions = {
   env: { ...process.env, PATH: `${process.env.PATH}:/usr/local/bin` },
 }
 
-const ASYNC_LOG = '/tmp/tpn-async.log'
+//const ASYNC_LOG = '/tmp/tpn-async.log'
 const SUDO_ASYNC_LOG = '/tmp/tpn-sudo-async.log'
 
 const checkForErrors = (output: string): void => {
@@ -154,12 +154,12 @@ const verifyWireGuardInstallation = async (maxRetries = 5): Promise<void> => {
 
     const [wgQuickCheck, wgCheck] = await Promise.all([
       new Promise<string>((resolve) => {
-        exec('which wg-quick', shell_options, (error, stdout) => {
+        exec('which wg-quick', shell_options, (_error, stdout) => {
           resolve(stdout.trim())
         })
       }),
       new Promise<string>((resolve) => {
-        exec('which wg', shell_options, (error, stdout) => {
+        exec('which wg', shell_options, (_error, stdout) => {
           resolve(stdout.trim())
         })
       }),
@@ -265,7 +265,7 @@ export const initialize_tpn = async (): Promise<void> => {
 
         // Install WireGuard as regular user (not sudo)
         try {
-          const result = await new Promise((resolve, reject) => {
+          await new Promise((resolve, reject) => {
             exec(
               'HOMEBREW_NO_AUTO_UPDATE=1 brew install wireguard-tools',
               { ...shell_options, timeout: 60000 },
@@ -400,7 +400,7 @@ export const connect = async (
 export const cancel = async (): Promise<boolean> => {
   return new Promise((resolve) => {
     // Replace 'tpn' with your actual binary name if needed
-    exec("pkill -f 'tpn connect'", (error, stdout, stderr) => {
+    exec("pkill -f 'tpn connect'", (error, _stdout, _stderr) => {
       if (error) {
         console.error("Error cancelling VPN:", error.message);
         return resolve(false);
