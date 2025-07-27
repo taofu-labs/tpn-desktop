@@ -4,8 +4,11 @@ import toast from "react-hot-toast";
 import { leaseDurations } from "../utils/connection";
 import { ConnectCard } from "./ConnectCard";
 import { SelectCountry } from "./SelectCountry";
+import { SlEarphones } from "react-icons/sl";
 export interface SidebarProps {
-  selectedCountry: { name: string; flag: string } | null;
+  selectedCountry: {
+    code: string; name: string; flag: string 
+} | null;
   setSelectedCountry: (country: { name: string; flag: string } | null) => void;
   connected: boolean;
   setConnected: (connected: boolean) => void;
@@ -112,7 +115,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     setConnecting(true);
 
     const connectPromise = window.electron.connectToCountry({
-      country: selectedCountry?.name,
+      country: selectedCountry?.code,
       lease: +selectedLease,
     });
 
