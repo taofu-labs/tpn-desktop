@@ -23,7 +23,7 @@ function App() {
     []
   );
   const [error, setError] = useState(false);
-  const [_internetStatus, setInternetStatus] = useState<ConnectionStatus | null>(null);
+  const [internetStatus, setInternetStatus] = useState<ConnectionStatus | null>(null);
 
   // Initialize app state on startup
   useEffect(() => {
@@ -237,6 +237,18 @@ function App() {
 
     return () => clearInterval(interval);
   }, [isInitializing]);
+
+   // Show loading state while initializing
+   if (!internetStatus?.isOnline) {
+    return (
+      <div className="app-bg min-h-screen min-w-screen bg-[#232733] text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-xl font-medium mb-4">Your are not connected to the internet</div>
+          <div className="text-gray-400">Please check your internet connection!</div>
+        </div>
+      </div>
+    );
+  }
 
   // Show loading state while initializing
   if (isInitializing) {
