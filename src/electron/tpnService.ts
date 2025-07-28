@@ -1,5 +1,5 @@
-import { connect, listCountries, checkStatus, disconnect, initialize_tpn, cancel} from './tpn-cli.js'
-import type { ConnectionInfo, StatusInfo } from './tpn-cli.js'
+import { connect, listCountries, checkStatus, disconnect, initialize_tpn, cancel, checkInternetConnection} from './tpn-cli.js'
+import type { ConnectionInfo, ConnectionStatus, StatusInfo } from './tpn-cli.js'
 
 interface DisconnectInfo {
   success: boolean;
@@ -37,6 +37,10 @@ export const tpnService = {
       success: true,
       message: "Disconnected successfully"
     };
+  },
+
+   async checkConnection(): Promise<ConnectionStatus> {
+    return await checkInternetConnection();
   }
 
 }
