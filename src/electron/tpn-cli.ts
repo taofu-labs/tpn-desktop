@@ -426,8 +426,8 @@ export const connect = async (
     }
   } catch (e) {
     const error = e as Error
-    log(`Error during connect operation: `, error)
-    throw new Error(`Failed to connect please try again`)
+    log(`Error during connect operation: `, error.message)
+    throw error
   }
   // throw new Error('Failed to parse connection info')
 }
