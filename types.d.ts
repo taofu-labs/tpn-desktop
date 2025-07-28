@@ -6,6 +6,11 @@ interface ConnectionInfo {
   leaseEndTime: Date;
   minutesRemaining: number;
 }
+interface ConnectionStatus {
+  isOnline: boolean;
+  lastChecked: Date;
+  latency?: number;
+}
 
 interface StatusInfo {
   connected: boolean;
@@ -28,6 +33,7 @@ type EventPayloadMapping = {
   disconnect: DisconnectInfo;
   cancel: boolean;
   startSpeedTest: boolean;
+  checkInternetConnection: ConnectionStatus;
 };
 
 type ConnectionPayload = {
@@ -43,6 +49,7 @@ interface Window {
     cancel:() => Promise<boolean>;
     startSpeedTest: () => Promise<{ success: boolean }>;
     onSpeedTestProgress: (callback: (data: SpeedTestProgress) => void) => void;
+    onConnectionStatus: (callback: (status: ConnectionStatus) => void) => void;
   };
 }
 
