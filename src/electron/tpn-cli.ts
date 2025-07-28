@@ -40,9 +40,9 @@ interface ApiResponse {
 }
 
 export interface ConnectionStatus {
-  isOnline: boolean;
-  lastChecked: Date;
-  latency?: number;
+  isOnline: boolean
+  lastChecked: Date
+  latency?: number
 }
 
 const { USER } = process.env
@@ -406,7 +406,7 @@ export const connect = async (
 
       // Verify we got IP information indicating success
       if (!ipInfo.currentIP && !ipInfo.originalIP) {
-        throw new Error('Connection failed - no IP information found')
+        throw new Error('Connection terminated')
       }
 
       // Connection appears successful but no lease info
@@ -427,24 +427,38 @@ export const connect = async (
   } catch (e) {
     const error = e as Error
     log(`Error during connect operation: `, error)
-    throw new Error(`Failed to connect please try again: ${error.message}`)
+    throw new Error(`Failed to connect please try again`)
   }
   // throw new Error('Failed to parse connection info')
 }
 
 export const cancel = async (): Promise<boolean> => {
-  return new Promise((resolve) => {
-    // Replace 'tpn' with your actual binary name if needed
-    exec("pkill -f 'tpn connect'", (error, _stdout, _stderr) => {
-      if (error) {
-        console.error('Error cancelling VPN:', error.message)
-        return resolve(false)
-      }
+  const result = await exec_async("pkill -f 'tpn connect'", 60000)
+  log(`Cancel operation result: `, result)
+  try {
+    log('Checking connection status after cancel...')
+    const status = await checkStatus()
 
-      console.log('VPN process cancelled.')
-      resolve(true)
-    })
-  })
+    if (status.connected) {
+      log('Still connected after cancel, attempting disconnect...')
+      const disconnectResult = await disconnect()
+
+      if (disconnectResult.success) {
+        log('Successfully disconnected after cancel')
+        return true
+      } else {
+        log('Failed to disconnect after cancel')
+        return false
+      }
+    } else {
+      log('Not connected after cancel, cancel successful')
+      return true
+    }
+  } catch (statusError) {
+    log('Error checking status after cancel:', statusError)
+    // If we can't check status, just return the pkill result
+    return false
+  }
 }
 
 export const listCountries: any = async (): Promise<CountryData[]> => {
@@ -620,8 +634,8 @@ export const uninstall_tpn_cli = async (): Promise<boolean> => {
 }
 
 export const checkInternetConnection = async (): Promise<ConnectionStatus> => {
-  const startTime = Date.now();
-  
+  const startTime = Date.now()
+
   try {
     // Simple curl check to a reliable endpoint
     const online = await Promise.race([
@@ -632,16 +646,16 @@ export const checkInternetConnection = async (): Promise<ConnectionStatus> => {
         .then(() => true)
         .catch(() => false),
     ])
-    console.log("online", online)
+    console.log('online', online)
     return {
       isOnline: online,
       lastChecked: new Date(),
       latency: Date.now() - startTime,
-    };
+    }
   } catch (error) {
     return {
       isOnline: false,
       lastChecked: new Date(),
-    };
+    }
   }
-};
+}
