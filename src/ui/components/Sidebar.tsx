@@ -36,82 +36,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [connecting, setConnecting] = useState(false);
   const [canceling, setCanceling] = useState(false);
 
-  // useEffect(() => {
-  //   let retryTimeout: NodeJS.Timeout | null = null;
-  //   let cancelled = false;
-
-  //   async function fetchCountries() {
-  //     setLoading(true);
-  //     setError(false);
-  //     try {
-  //       if (window.electron) {
-  //         const countries = await window.electron.getCountries();
-  //         console.log(countries)
-  //         if (Array.isArray(countries) && countries.length > 0) {
-  //           setCountries(
-  //             countries.map((country: any) => {
-  //               return {
-  //                 name: country.name,
-  //                 flag: codeToFlagEmoji(country.code),
-  //               };
-  //             })
-  //           );
-  //           setLoading(false);
-  //           return;
-  //         } else {
-  //           setCountries([]);
-  //         }
-  //       } else {
-  //         setCountries([]);
-  //       }
-  //     } catch {
-  //       setError(true);
-  //       setCountries([]);
-  //     }
-
-  //     if (!cancelled) {
-  //       retryTimeout = setTimeout(fetchCountries, 2000);
-  //     }
-
-  //     setLoading(false);
-  //   }
-
-  //   // Initial fetch on load
-  //   fetchCountries();
-
-  //   return () => {
-  //     cancelled = true;
-  //     if (retryTimeout) clearTimeout(retryTimeout);
-  //   };
-  // }, []); // ← Only runs on mount
-
-  // useEffect(() => {
-  //   if (loading) return;
-  //   const intervalId = setInterval(() => {
-  //     if (window.electron) {
-  //       window.electron
-  //         .getCountries()
-  //         .then((countries) => {
-  //           if (Array.isArray(countries) && countries.length > 0) {
-  //             setCountries(
-  //               countries.map((country: any) => {
-  //                 return {
-  //                   name: country.name,
-  //                   flag: codeToFlagEmoji(country.code),
-  //                 };
-  //               })
-  //             );
-  //           }
-  //         })
-  //         .catch(() => {
-  //           // Optional: silent catch for background polling
-  //         });
-  //     }
-  //   }, 600000); // every 10 minutes
-
-  //   return () => clearInterval(intervalId);
-  // }, []); // ← Also runs on mount, but sets up background polling
-
   const handleConnect = async () => {
     if (!selectedCountry || !selectedLease) return;
 
@@ -142,9 +66,19 @@ const Sidebar: React.FC<SidebarProps> = ({
       },
       error: (error) => {
         console.error("Connection error:", error);
-        return `Failed to connect: ${
-          canceling ? "You cancelled the connection." : "Please try agian."
-        }`;
+        let errorMessage = "Connection failed, Please try again.";
+
+        if (error?.message) {
+          // Remove Electron's IPC wrapper prefix
+          const match = error.message.match(
+            /Error invoking remote method '[^']+': Error: (.+)/
+          );
+          if (match) {
+            errorMessage = match[1]; // This gets "Connection terminated"
+          }
+        }
+
+        return errorMessage;
       },
     });
 
