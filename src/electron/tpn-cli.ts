@@ -39,6 +39,12 @@ interface ApiResponse {
   miner_country_code_to_name: Record<string, string>
 }
 
+export interface ConnectionStatus {
+  isOnline: boolean;
+  lastChecked: Date;
+  latency?: number;
+}
+
 const { USER } = process.env
 
 const path_fix =
@@ -226,7 +232,7 @@ export const initialize_tpn = async (): Promise<void> => {
 
     // If installed, update
     if (is_installed && visudo_complete) {
-      if (!online) return log(`Skipping battery update because we are offline`)
+      if (!online) return log(`Skipping TPN update because we are offline`)
       if (skipupdate) return log(`Skipping update due to environment variable`)
       log(`Updating TPN...`)
       const result = await exec_async(`${tpn} update --silent`).catch((e) => e)
@@ -359,20 +365,24 @@ export const connect = async (
   country: string = 'any',
   lease?: number,
 ): Promise<ConnectionInfo> => {
-  let command = `${tpn} connect ${country}`
+  try {
+    let command = `${tpn} connect ${country}`
 
-  if (lease) {
-    command += ` --lease_minutes ${lease}`
-  }
-  command += ' -f'
-  command += ' -v'
+    if (lease) {
+      command += ` --lease_minutes ${lease}`
+    }
+    command += ' -f'
+    command += ' -v'
 
-  log(`Executing command: ${command}`)
+    log(`Executing command: ${command}`)
 
-  const result = await exec_async(command, 60000)
-  log(`Update result: `, result)
+    const result = await exec_async(command, 60000)
+    log(`Connect operation result: `, result)
 
-  if (result) {
+    if (!result) {
+      throw new Error('No output received from TPN connect command')
+    }
+
     checkForErrors(result)
     const leaseMatch: RegExpMatchArray | null = result.match(
       /lease ends in (\d+) minutes \(([^)]+)\)/,
@@ -391,10 +401,35 @@ export const connect = async (
         leaseEndTime: endTime,
         minutesRemaining: minutes,
       }
-    }
-  }
+    } else {
+      log('Failed to get lease info after connect')
 
-  throw new Error('Failed to parse connection info')
+      // Verify we got IP information indicating success
+      if (!ipInfo.currentIP && !ipInfo.originalIP) {
+        throw new Error('Connection failed - no IP information found')
+      }
+
+      // Connection appears successful but no lease info
+      // Use fallback values based on requested lease or defaults
+      const fallbackMinutes = lease || 60 // Default to 60 minutes
+      const fallbackEndTime = new Date(Date.now() + fallbackMinutes * 60 * 1000)
+
+      log(`Using fallback lease info: ${fallbackMinutes} minutes`)
+
+      return {
+        connected: true,
+        originalIP: ipInfo.originalIP,
+        currentIP: ipInfo.currentIP,
+        leaseEndTime: fallbackEndTime,
+        minutesRemaining: fallbackMinutes,
+      }
+    }
+  } catch (e) {
+    const error = e as Error
+    log(`Error during connect operation: `, error)
+    throw new Error(`Failed to connect please try again: ${error.message}`)
+  }
+  // throw new Error('Failed to parse connection info')
 }
 
 export const cancel = async (): Promise<boolean> => {
@@ -402,15 +437,15 @@ export const cancel = async (): Promise<boolean> => {
     // Replace 'tpn' with your actual binary name if needed
     exec("pkill -f 'tpn connect'", (error, _stdout, _stderr) => {
       if (error) {
-        console.error("Error cancelling VPN:", error.message);
-        return resolve(false);
+        console.error('Error cancelling VPN:', error.message)
+        return resolve(false)
       }
 
-      console.log("VPN process cancelled.");
-      resolve(true);
-    });
-  });
-};
+      console.log('VPN process cancelled.')
+      resolve(true)
+    })
+  })
+}
 
 export const listCountries: any = async (): Promise<CountryData[]> => {
   try {
@@ -520,40 +555,53 @@ export const checkStatus = async (): Promise<StatusInfo> => {
 }
 
 export const disconnect = async (): Promise<DisconnectInfo> => {
-  let command = `${tpn} disconnect`
+  try {
+    let command = `${tpn} disconnect`
 
-  log(`Executing command: ${command}`)
+    log(`Executing command: ${command}`)
 
-  const result = await exec_async(command)
-  log(`Update result: `, result)
+    const result = await exec_async(command)
+    log(`Disconnect result: `, result)
 
-  if (typeof result === 'string') {
-    checkForErrors(result)
+    if (typeof result === 'string') {
+      checkForErrors(result)
 
-    // Parse the IP change: "IP changed back from 38.54.29.240 to 80.41.137.152"
-    const ipChangeMatch = result.match(
-      /IP changed back from ([\d.]+) to ([\d.]+)/,
-    )
+      // Parse the IP change: "IP changed back from 38.54.29.240 to 80.41.137.152"
+      const ipChangeMatch = result.match(
+        /IP changed back from ([\d.]+) to ([\d.]+)/,
+      )
 
-    if (ipChangeMatch) {
-      return {
-        success: true,
-        previousIP: ipChangeMatch[1], // VPN IP
-        newIP: ipChangeMatch[2], // Real IP
-        message: 'Successfully disconnected from VPN',
+      if (ipChangeMatch) {
+        return {
+          success: true,
+          previousIP: ipChangeMatch[1], // VPN IP
+          newIP: ipChangeMatch[2], // Real IP
+          message: 'Successfully disconnected from VPN',
+        }
+      }
+
+      try {
+        const statusInfo = await checkStatus()
+
+        if (!statusInfo.connected) {
+          return {
+            success: true,
+            newIP: statusInfo.currentIP,
+            message: 'Successfully disconnected from VPN',
+          }
+        }
+      } catch (statusError) {
+        log('Failed to check status after disconnect:', statusError)
+        throw new Error('Failed to disconnect, try again')
       }
     }
 
-    // If no IP change found but no errors, still consider it successful
-    if (result.includes('Disconnecting TPN')) {
-      return {
-        success: true,
-        message: 'Disconnected from TPN',
-      }
-    }
+    throw new Error('Error disconnecting')
+  } catch (e) {
+    const error = e as Error
+    log(`Error during disconnect operation: `, error)
+    throw new Error(`Failed to disconnect: ${error.message}`)
   }
-
-  throw new Error('Failed to disconnect')
 }
 
 export const uninstall_tpn_cli = async (): Promise<boolean> => {
@@ -570,3 +618,30 @@ export const uninstall_tpn_cli = async (): Promise<boolean> => {
     return false
   }
 }
+
+export const checkInternetConnection = async (): Promise<ConnectionStatus> => {
+  const startTime = Date.now();
+  
+  try {
+    // Simple curl check to a reliable endpoint
+    const online = await Promise.race([
+      exec_async(`${path_fix} curl -I https://icanhazip.com &> /dev/null`)
+        .then(() => true)
+        .catch(() => false),
+      exec_async(`${path_fix} curl -I https://github.com &> /dev/null`)
+        .then(() => true)
+        .catch(() => false),
+    ])
+    console.log("online", online)
+    return {
+      isOnline: online,
+      lastChecked: new Date(),
+      latency: Date.now() - startTime,
+    };
+  } catch (error) {
+    return {
+      isOnline: false,
+      lastChecked: new Date(),
+    };
+  }
+};

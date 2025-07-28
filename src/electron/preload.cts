@@ -32,6 +32,12 @@ electron.contextBridge.exposeInMainWorld("electron", {
     });
   },
 
+   onConnectionStatus: (callback: (status: any) => void) => {
+    electron.ipcRenderer.on('connection-status', (_event: Electron.IpcRendererEvent, status: ConnectionStatus) => {
+      callback(status);
+    });
+  },
+
 });
 
 // Generic IPC invoke function

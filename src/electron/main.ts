@@ -1,24 +1,26 @@
-import { app, BrowserWindow, dialog, nativeImage } from "electron";
-import path from "path";
-import { isDev } from "./util.js";
-import { alert, log } from "./helpers.js";
-import { getPreloadPath, getAssetPath } from "./pathResolver.js";
-import { initialize_tpn } from "./tpn-cli.js";
-import { initializeIpcHandlers } from "./ipcHandlers.js";
-import { tpnService } from "./tpnService.js";
-import updater from "electron-updater";
-import { getNetworkspeed } from "./network.js"
-const { autoUpdater } = updater;
+import { app, BrowserWindow, dialog, nativeImage } from 'electron'
+import path from 'path'
+import { isDev } from './util.js'
+import { alert, log } from './helpers.js'
+import { getPreloadPath, getAssetPath } from './pathResolver.js'
+import { initialize_tpn } from './tpn-cli.js'
+import { initializeIpcHandlers } from './ipcHandlers.js'
+import { tpnService } from './tpnService.js'
+import updater from 'electron-updater'
+import { getNetworkspeed } from './network.js'
+const { autoUpdater } = updater
+
+let connectionInterval: NodeJS.Timeout | null = null
 
 const state = {
-    mainWindow: null as BrowserWindow | null,
+  mainWindow: null as BrowserWindow | null,
 }
 
 /* ///////////////////////////////
 // Event listeners
 // /////////////////////////////*/
 app.whenReady().then(async () => {
-   state.mainWindow = new BrowserWindow({
+  state.mainWindow = new BrowserWindow({
     width: 1200,
     height: 900,
     show: false,
@@ -26,105 +28,129 @@ app.whenReady().then(async () => {
     webPreferences: {
       preload: getPreloadPath(),
     },
-  });
-  
+  })
 
-   state.mainWindow.webContents.on("did-finish-load", () => {
-    log("Window finished loading");
-  });
+  state.mainWindow.webContents.on('did-finish-load', () => {
+    log('Window finished loading')
+    // Start connection monitoring
+    const checkConnection = async () => {
+      try {
+        const status = await tpnService.checkConnection()
 
-   try {
-    await initialize_tpn();
+        // Send status to frontend
+        if (state.mainWindow && !state.mainWindow.isDestroyed()) {
+          state.mainWindow.webContents.send('connection-status', status)
+        }
+      } catch (error) {
+        log('Connection check failed:', error)
+      }
+    }
+
+    // Initial check immediately when window loads
+    checkConnection()
+
+    // Then check every 15 seconds
+    connectionInterval = setInterval(checkConnection, 15000)
+  })
+
+  try {
+    await initialize_tpn()
 
     initializeIpcHandlers({
       tpnService,
       getMainWindow: () => {
         if (!state.mainWindow) {
-          throw new Error("Main window is not initialized");
+          throw new Error('Main window is not initialized')
         }
-        return state.mainWindow;
+        return state.mainWindow
       },
-      getNetworkspeed
-    },
-  );
+      getNetworkspeed,
+    })
 
-     state.mainWindow.show(); // Show after TPN is ready
+    state.mainWindow.show() // Show after TPN is ready
   } catch (error) {
-    console.error("Failed to initialize TPN:", error);
+    console.error('Failed to initialize TPN:', error)
   }
   if (isDev()) {
-     state.mainWindow.loadURL("http://localhost:5123");
+    state.mainWindow.loadURL('http://localhost:5123')
   } else {
-     state.mainWindow.loadFile(path.join(app.getAppPath(), "/dist-react/index.html"));
-    autoUpdater.checkForUpdatesAndNotify();
+    state.mainWindow.loadFile(
+      path.join(app.getAppPath(), '/dist-react/index.html'),
+    )
+    autoUpdater.checkForUpdatesAndNotify()
   }
- 
-});
+})
 
 // Set dock icon in dev mode on macOS
 if (isDev() && process.platform === 'darwin' && app.dock) {
-  app.dock.setIcon(nativeImage.createFromPath(path.join(getAssetPath(), 'app-icon.png')));
+  app.dock.setIcon(
+    nativeImage.createFromPath(path.join(getAssetPath(), 'app-icon.png')),
+  )
 }
 
 // Ensure VPN disconnects when app closes
-app.on("before-quit", async () => {
+app.on('before-quit', async () => {
   try {
+    if (connectionInterval) {
+      clearInterval(connectionInterval)
+      connectionInterval = null
+    }
     // Optionally, you can check if connected before disconnecting
-    await tpnService.disconnect();
+    await tpnService.disconnect()
   } catch (err) {
-    console.error("Error disconnecting VPN on quit:", err);
+    console.error('Error disconnecting VPN on quit:', err)
   }
-});
+})
 
 // Auto Updater Events
-autoUpdater.on("update-available", () => {
+autoUpdater.on('update-available', () => {
   dialog.showMessageBox({
-    type: "info",
-    title: "Update Available",
-    message: "A new update is being downloaded.",
-  });
-});
+    type: 'info',
+    title: 'Update Available',
+    message: 'A new update is being downloaded.',
+  })
+})
 
-autoUpdater.on("update-downloaded", () => {
+autoUpdater.on('update-downloaded', () => {
   dialog
     .showMessageBox({
-      type: "info",
-      title: "Update Ready",
-      message: "An update is ready. Restart now?",
-      buttons: ["Restart", "Later"],
+      type: 'info',
+      title: 'Update Ready',
+      message: 'An update is ready. Restart now?',
+      buttons: ['Restart', 'Later'],
     })
     .then((result) => {
       if (result.response === 0) {
-        autoUpdater.quitAndInstall();
+        autoUpdater.quitAndInstall()
       }
-    });
-});
+    })
+})
 
-autoUpdater.on("error", (err: Error) => {
-  console.error("AutoUpdater error:", err);
-});
+autoUpdater.on('error', (err: Error) => {
+  console.error('AutoUpdater error:', err)
+})
 
 /* ///////////////////////////////
 // Global config
 // /////////////////////////////*/
 
 if (isDev()) {
-  if (app.dock) app.dock.show();
+  if (app.dock) app.dock.show()
 } else {
-  if (app.dock) app.dock.hide();
+  if (app.dock) app.dock.hide()
 }
 
 /* ///////////////////////////////
 // Debugging
 // /////////////////////////////*/
-const debug = false;
+const debug = false
 if (debug) {
   app.whenReady().then(async () => {
-    await alert(__dirname);
+    await alert(__dirname)
 
-    await alert(Object.keys(process.env).join("\n"));
+    await alert(Object.keys(process.env).join('\n'))
 
-    const { HOME, PATH, USER } = process.env;
-    await alert(`HOME: ${HOME}\n\nPATH: ${PATH}\n\nUSER: ${USER}`);
-  });
+    const { HOME, PATH, USER } = process.env
+    await alert(`HOME: ${HOME}\n\nPATH: ${PATH}\n\nUSER: ${USER}`)
+  })
 }
