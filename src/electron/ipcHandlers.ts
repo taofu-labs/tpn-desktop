@@ -1,5 +1,5 @@
 import { BrowserWindow } from "electron";
-import type { ConnectionInfo, StatusInfo } from "./tpn-cli.js";
+import type { ConnectionInfo, ConnectionStatus, StatusInfo } from "./tpn-cli.js";
 
 
 interface DisconnectInfo {
@@ -17,6 +17,7 @@ export interface IpcServices {
     checkStatus(): Promise<StatusInfo>;
     disconnect(): Promise<DisconnectInfo>;
     cancel(): Promise<boolean>;
+    checkConnection(): Promise<ConnectionStatus>
   },
   getMainWindow(): BrowserWindow;
   getNetworkspeed(): Promise<any>;
@@ -89,4 +90,9 @@ export function initializeIpcHandlers(services: IpcServices): void {
   } 
     
   });
+
+  ipcMainHandler("checkInternetConnection", async () => {
+    return await services.tpnService.checkConnection();
+  });
+  
 }

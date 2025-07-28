@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Toaster } from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 import Sidebar from "./components/Sidebar";
 import MapView from "./MapView";
 import ConnectedCard from "./components/ConnectedCard";
 import { codeToFlagEmoji } from "./utils/countryUtils";
+import type { ConnectionStatus } from "../electron/tpn-cli";
 
 interface Country {
   name: string;
@@ -22,6 +23,7 @@ function App() {
     []
   );
   const [error, setError] = useState(false);
+  const [_internetStatus, setInternetStatus] = useState<ConnectionStatus | null>(null);
 
   // Initialize app state on startup
   useEffect(() => {
@@ -82,6 +84,29 @@ function App() {
     };
 
     initializeApp();
+  }, []);
+
+  useEffect(() => {
+    if (window.electron) {
+      let previousStatus: boolean | null = null;
+
+      // Listen for status updates
+      window.electron.onConnectionStatus((status: ConnectionStatus) => {
+        setInternetStatus(status);
+
+        // Show toast only on status change
+        if (previousStatus !== null && previousStatus !== status.isOnline) {
+          if (status.isOnline) {
+            toast.success("Internet connection restored", { icon: "🌐" });
+          } else {
+            toast.error("No internet connection", { icon: "⚠️" });
+          }
+        }
+
+        // Update previous status for next comparison
+        previousStatus = status.isOnline;
+      });
+    }
   }, []);
 
   useEffect(() => {
@@ -259,9 +284,8 @@ function App() {
           Tao Private Network
         </div>
         <div
-          className={`font-semibold text-xs sm:text-sm ${
-            connected ? "text-green-400" : "text-red-400"
-          }`}
+          className={`font-semibold text-xs sm:text-sm ${connected ? "text-green-400" : "text-red-400"
+            }`}
         >
           {connected ? "CONNECTED" : "NOT CONNECTED"}
         </div>
