@@ -234,7 +234,7 @@ function App() {
     };
 
     // Check status every 30 seconds
-    const interval = setInterval(checkStatus, 120000);
+    const interval = setInterval(checkStatus, 30000);
 
     return () => clearInterval(interval);
   }, [isInitializing]);
