@@ -2,9 +2,8 @@
 
 ## 📦 Prerequisites
 
-- Node.js v20+
+- Node.js v22+
 - npm v7+
-- [Playwright](https://playwright.dev/docs/intro) (for e2e tests)
 - [Electron Builder](https://www.electron.build/) (already included via scripts)
 
 ---
@@ -36,10 +35,6 @@ npm run dev
 npm run test:unit
 ```
 
-### End-to-End Tests (via `playwright`)
-```bash
-npm run test:e2e
-```
 
 ---
 
@@ -85,15 +80,8 @@ Electron Builder is used to create distributable binaries for each platform.
 npm run dist:mac
 ```
 
-### Windows (x64)
-```bash
-npm run dist:win
-```
-
-### Linux (x64)
-```bash
-npm run dist:linux
-```
+- Set up `.env` with relevant variables, see `build/aftersign_hook.js`
+- Check entitlements in `build/entitlements.mac.plist`, the defauls should suffice
 
 ---
 
@@ -111,4 +99,3 @@ npm run dist:linux
 | `dist:linux`         | Builds Linux x64 binary                 |
 | `lint`               | Runs ESLint                             |
 | `test:unit`          | Runs unit tests                         |
-| `test:e2e`           | Runs end-to-end Playwright tests        |

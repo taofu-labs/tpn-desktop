@@ -28,8 +28,8 @@ const log = async (...messages: any[]): Promise<void> => {
     // Log to file if possible
     try {
         if (HOME) {
-            await fs.mkdir(`${HOME}/.battery/`, { recursive: true })
-            await fs.appendFile(`${HOME}/.battery/gui.log`, `${messages.join('\n')}\n`, 'utf8')
+            await fs.mkdir(`${HOME}/.tpn/`, { recursive: true })
+            await fs.appendFile(`${HOME}/.tpn/gui.log`, `${messages.join('\n')}\n`, 'utf8')
         } else if (!has_alerted_user_no_home) {
             alert(`No HOME variable set, this should never happen`)
             has_alerted_user_no_home = true
