@@ -106,10 +106,11 @@ const exec_async_no_timeout = (command: string): Promise<string> =>
   new Promise((resolve, reject) => {
     log(`Executing ${command}`)
     exec(command, shell_options, (error, stdout, stderr) => {
+      console.log("stdout", stdout)
+      console.log("stderr", stderr)
       if (stdout) return resolve(stdout)
       if (error) return reject(new Error(stderr))
       if (stderr) return reject(new Error(stderr))
-      if (stdout) return resolve(stdout)
       resolve('')
     })
   })
@@ -372,7 +373,6 @@ export const connect = async (
       command += ` --lease_minutes ${lease}`
     }
     command += ' -f'
-    command += ' -v'
 
     log(`Executing command: ${command}`)
 
@@ -380,7 +380,7 @@ export const connect = async (
     log(`Connect operation result: `, result)
 
     if (!result) {
-      throw new Error('No output received from TPN connect command')
+      throw new Error('No output received from TPN connect. Try again')
     }
 
     checkForErrors(result)
@@ -433,7 +433,7 @@ export const connect = async (
 }
 
 export const cancel = async (): Promise<boolean> => {
-  const result = await exec_async("pkill -f 'tpn connect'", 60000)
+  const result = await exec_async("pkill -f 'tpn connect'", 15000)
   log(`Cancel operation result: `, result)
   try {
     log('Checking connection status after cancel...')
@@ -505,7 +505,7 @@ export const checkStatus = async (): Promise<StatusInfo> => {
 
   log(`Executing command: ${command}`)
 
-  const result = await exec_async(command, 5000)
+  const result = await exec_async(command, 30000)
   log(`Update result: `, result)
   if (result) {
     checkForErrors(result)
@@ -570,15 +570,15 @@ export const checkStatus = async (): Promise<StatusInfo> => {
 
 export const disconnect = async (): Promise<DisconnectInfo> => {
   try {
-    let command = `${tpn} disconnect`
+    let command = `${tpn} disconnect -v`
 
     log(`Executing command: ${command}`)
 
-    const result = await exec_async(command)
+    const result = await exec_async(command, 15000)
     log(`Disconnect result: `, result)
 
     if (typeof result === 'string') {
-      checkForErrors(result)
+      //checkForErrors(result)
 
       // Parse the IP change: "IP changed back from 38.54.29.240 to 80.41.137.152"
       const ipChangeMatch = result.match(
@@ -593,8 +593,9 @@ export const disconnect = async (): Promise<DisconnectInfo> => {
           message: 'Successfully disconnected from VPN',
         }
       }
+    }
 
-      try {
+     try {
         const statusInfo = await checkStatus()
 
         if (!statusInfo.connected) {
@@ -608,10 +609,10 @@ export const disconnect = async (): Promise<DisconnectInfo> => {
         log('Failed to check status after disconnect:', statusError)
         throw new Error('Failed to disconnect, try again')
       }
-    }
 
     throw new Error('Error disconnecting')
   } catch (e) {
+
     const error = e as Error
     log(`Error during disconnect operation: `, error)
     throw new Error(`Failed to disconnect: ${error.message}`)
