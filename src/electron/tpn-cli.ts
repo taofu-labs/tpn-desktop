@@ -106,8 +106,6 @@ const exec_async_no_timeout = (command: string): Promise<string> =>
   new Promise((resolve, reject) => {
     log(`Executing ${command}`)
     exec(command, shell_options, (error, stdout, stderr) => {
-      console.log("stdout", stdout)
-      console.log("stderr", stderr)
       if (stdout) return resolve(stdout)
       if (error) return reject(new Error(stderr))
       if (stderr) return reject(new Error(stderr))
@@ -595,24 +593,17 @@ export const disconnect = async (): Promise<DisconnectInfo> => {
       }
     }
 
-     try {
-        const statusInfo = await checkStatus()
-
-        if (!statusInfo.connected) {
-          return {
-            success: true,
-            newIP: statusInfo.currentIP,
-            message: 'Successfully disconnected from VPN',
-          }
-        }
-      } catch (statusError) {
-        log('Failed to check status after disconnect:', statusError)
-        throw new Error('Failed to disconnect, try again')
-      }
-
     throw new Error('Error disconnecting')
   } catch (e) {
-
+    const status = await checkStatus()
+      if (!status.connected) {
+        return {
+          success: true,
+          previousIP: 'unknow',
+          newIP: 'unknow',
+          message: 'Successfully disconnected from VPN'
+        }
+      }
     const error = e as Error
     log(`Error during disconnect operation: `, error)
     throw new Error(`Failed to disconnect: ${error.message}`)
