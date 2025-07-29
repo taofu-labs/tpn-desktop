@@ -568,7 +568,7 @@ export const checkStatus = async (): Promise<StatusInfo> => {
 
 export const disconnect = async (): Promise<DisconnectInfo> => {
   try {
-    let command = `${tpn} disconnect -v`
+    let command = `${tpn} disconnect`
 
     log(`Executing command: ${command}`)
 
