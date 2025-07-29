@@ -6,6 +6,7 @@ import { FiUpload, FiDownload } from "react-icons/fi";
 import { PuffLoader } from "react-spinners";
 import Tippy from "@tippyjs/react";
 import "tippy.js/dist/tippy.css"; // Import base styles
+import tpnLogo from "../assets/tpn-logo.png";
 
 interface ConnectedCardProps {
   country: { name: string; flag: string } | null;
@@ -132,7 +133,7 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({
       {/* TPN logo and stats */}
       <div className="flex items-center gap-3">
         <img
-          src="/src/ui/assets/tpn-logo.png"
+          src={tpnLogo}
           alt="TPN Logo"
           className="h-6 sm:h-8 w-auto"
         />

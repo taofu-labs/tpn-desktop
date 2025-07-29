@@ -5,6 +5,7 @@ import MapView from "./MapView";
 import ConnectedCard from "./components/ConnectedCard";
 import { codeToFlagEmoji } from "./utils/countryUtils";
 import type { ConnectionStatus } from "../electron/tpn-cli";
+import tpnLogo from "./assets/tpn-logo.png";
 
 interface Country {
   name: string;
@@ -344,7 +345,7 @@ function App() {
               <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-blue-500 rounded-full"></div>
               <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></div>
               <img
-                src="/src/ui/assets/tpn-logo.png"
+                src={tpnLogo}
                 alt="TPN Logo"
                 className="h-6 sm:h-8 w-auto"
               />

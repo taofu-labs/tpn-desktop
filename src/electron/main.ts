@@ -11,6 +11,8 @@ import { getNetworkspeed } from './network.js'
 const { autoUpdater } = updater
 
 let connectionInterval: NodeJS.Timeout | null = null
+let shiftDTimer: NodeJS.Timeout | null = null
+let isShiftDPressed = false
 
 const state = {
   mainWindow: null as BrowserWindow | null,
@@ -20,7 +22,7 @@ const state = {
 // Event listeners
 // /////////////////////////////*/
 app.whenReady().then(async () => {
-  state.mainWindow = new BrowserWindow({
+  const window_config = {
     width: 1200,
     height: 900,
     show: false,
@@ -28,7 +30,9 @@ app.whenReady().then(async () => {
     webPreferences: {
       preload: getPreloadPath(),
     },
-  })
+  }
+  log('Creating main window with config:', window_config)
+  state.mainWindow = new BrowserWindow(window_config)
 
   state.mainWindow.webContents.on('did-finish-load', () => {
     log('Window finished loading')
@@ -52,6 +56,77 @@ app.whenReady().then(async () => {
     // Then check every 15 seconds
     connectionInterval = setInterval(checkConnection, 15000)
   })
+
+  // Register keyboard shortcuts for Shift+D held for 10 seconds
+  const registerShiftDShortcut = () => {
+    if (!state.mainWindow) return
+    
+    let shiftPressed = false
+    let dPressed = false
+    
+    // Monitor key events within the window
+    state.mainWindow.webContents.on('before-input-event', (_event, input) => {
+      // Handle Shift key
+      if (input.key === 'Shift') {
+        if (input.type === 'keyDown') {
+          shiftPressed = true
+        } else if (input.type === 'keyUp') {
+          shiftPressed = false
+          resetTimer()
+        }
+      }
+      
+      // Handle D key
+      if (input.key === 'D' || input.key === 'd') {
+        if (input.type === 'keyDown' && shiftPressed && !isShiftDPressed) {
+          isShiftDPressed = true
+          dPressed = true
+          log('Shift+D pressed, starting 5-second timer')
+
+          // Start timer
+          shiftDTimer = setTimeout(() => {
+            log('Shift+D held for 5 seconds - triggering action')
+            if (state.mainWindow && !state.mainWindow.isDestroyed()) {
+              if (state.mainWindow.webContents.isDevToolsOpened()) {
+                state.mainWindow.webContents.closeDevTools()
+                log('DevTools closed via Shift+D hold')
+              } else {
+                alert(`Opening devtools. Window: ${ JSON.stringify(window_config) }`)
+                state.mainWindow.webContents.openDevTools()
+                log('DevTools opened via Shift+D hold')
+              }
+            }
+            resetTimer()
+          }, 5_000) // 5 seconds
+          
+        } else if (input.type === 'keyUp') {
+          dPressed = false
+          if (isShiftDPressed) {
+            log('D key released before 10 seconds')
+            resetTimer()
+          }
+        }
+      }
+      
+      // Reset if either key is released
+      if (!shiftPressed || !dPressed) {
+        if (input.type === 'keyUp' && isShiftDPressed) {
+          resetTimer()
+        }
+      }
+    })
+    
+    const resetTimer = () => {
+      if (shiftDTimer) {
+        clearTimeout(shiftDTimer)
+        shiftDTimer = null
+      }
+      isShiftDPressed = false
+      log('Shift+D timer reset')
+    }
+  }
+
+  registerShiftDShortcut()
 
   try {
     await initialize_tpn()
@@ -95,6 +170,13 @@ app.on('before-quit', async () => {
       clearInterval(connectionInterval)
       connectionInterval = null
     }
+    
+    // Clean up keyboard shortcuts and timers
+    if (shiftDTimer) {
+      clearTimeout(shiftDTimer)
+      shiftDTimer = null
+    }
+    
     // Optionally, you can check if connected before disconnecting
     await tpnService.disconnect()
   } catch (err) {
