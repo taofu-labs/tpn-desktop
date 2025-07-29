@@ -102,7 +102,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     const cancelPromise = window.electron.cancel();
 
     toast.promise(cancelPromise, {
-      loading: "Disconnecting from VPN...",
+      loading: "Canceling connection...",
       success: (result: any) => {
         if (result.success) {
           setConnected(false);
