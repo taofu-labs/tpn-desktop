@@ -454,7 +454,6 @@ export const cancel = async (): Promise<boolean> => {
     }
   } catch (statusError) {
     log('Error checking status after cancel:', statusError)
-    // If we can't check status, just return the pkill result
     return false
   }
 }
@@ -486,8 +485,7 @@ export const listCountries: any = async (): Promise<CountryData[]> => {
       }
     })
 
-    console.log('Processed countries:', countries)
-    log(`Successfully fetched ${countries.length} countries from API`)
+  log(`Successfully fetched ${countries.length} countries from API`)
 
     return countries
   } catch (error) {
@@ -501,15 +499,14 @@ export const listCountries: any = async (): Promise<CountryData[]> => {
 export const checkStatus = async (): Promise<StatusInfo> => {
   let command = `${tpn} status`
 
-  log(`Executing command: ${command}`)
-
   const result = await exec_async(command, 30000)
-  log(`Update result: `, result)
+  log(`Status result: `, result)
   if (result) {
     checkForErrors(result)
-    // Parse connection status and IP - try multiple patterns
+    
+    // Updated patterns to handle empty IP case for both connected and disconnected
     let statusMatch = result.match(
-      /TPN status: (Connected|Disconnected) \(([\d.]+)\)/,
+      /TPN status: (Connected|Disconnected) \(([^)]*)\)/  // Matches anything including empty
     )
     if (!statusMatch) {
       // Try alternative pattern without parentheses
@@ -518,23 +515,25 @@ export const checkStatus = async (): Promise<StatusInfo> => {
       )
     }
     if (!statusMatch) {
-      // Try pattern with different spacing
+      // Try pattern with different spacing and optional empty parentheses
       statusMatch = result.match(
-        /TPN status:\s*(Connected|Disconnected)\s*\(?([\d.]+)\)?/,
+        /TPN status:\s*(Connected|Disconnected)\s*\(?([^)]*)\)?/,
       )
     }
-    log(`Status match: `, statusMatch)
+    
     if (statusMatch) {
       const isConnected = statusMatch[1] === 'Connected'
-      const currentIP = statusMatch[2]
-      log(`Is connected: ${isConnected}, IP: ${currentIP}`)
+      let currentIP = statusMatch[2]
+      // Handle empty IP case (can happen when connected or disconnected)
+      if (!currentIP || currentIP.trim() === '') {
+        currentIP = isConnected ? 'connected-offline' : 'offline'
+      }
 
       // If connected, try to parse lease info
       if (isConnected) {
         const leaseMatch = result.match(
           /[Ll]ease ends in (\d+) minutes \(([^)]+)\)/,
         )
-        log(`Lease match: `, leaseMatch)
 
         if (leaseMatch) {
           const minutes = parseInt(leaseMatch[1])
@@ -555,8 +554,8 @@ export const checkStatus = async (): Promise<StatusInfo> => {
           currentIP,
         }
       }
-
-      // Disconnected
+     
+      // Disconnected (online or offline)
       return {
         connected: false,
         currentIP,
@@ -572,11 +571,11 @@ export const disconnect = async (): Promise<DisconnectInfo> => {
 
     log(`Executing command: ${command}`)
 
-    const result = await exec_async(command, 15000)
+    const result = await exec_async(command, 30000)
     log(`Disconnect result: `, result)
 
     if (typeof result === 'string') {
-      //checkForErrors(result)
+      checkForErrors(result)
 
       // Parse the IP change: "IP changed back from 38.54.29.240 to 80.41.137.152"
       const ipChangeMatch = result.match(
@@ -592,9 +591,9 @@ export const disconnect = async (): Promise<DisconnectInfo> => {
         }
       }
     }
-
     throw new Error('Error disconnecting')
   } catch (e) {
+    try{
     const status = await checkStatus()
       if (!status.connected) {
         return {
@@ -604,6 +603,9 @@ export const disconnect = async (): Promise<DisconnectInfo> => {
           message: 'Successfully disconnected from VPN'
         }
       }
+    }catch(err) {
+      throw new Error("Failed to check status");
+    }
     const error = e as Error
     log(`Error during disconnect operation: `, error)
     throw new Error(`Failed to disconnect: ${error.message}`)
@@ -638,7 +640,6 @@ export const checkInternetConnection = async (): Promise<ConnectionStatus> => {
         .then(() => true)
         .catch(() => false),
     ])
-    console.log('online', online)
     return {
       isOnline: online,
       lastChecked: new Date(),
