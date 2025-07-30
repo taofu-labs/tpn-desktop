@@ -98,7 +98,6 @@ function App() {
 
       // Listen for status updates
       window.electron.onConnectionStatus((status: ConnectionStatus) => {
-        console.log(status)
         setInternetStatus(status);
 
         // Show toast only on status change
