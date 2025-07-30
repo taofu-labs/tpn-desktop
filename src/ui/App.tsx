@@ -13,6 +13,9 @@ interface Country {
   code: string;
 }
 
+const google_form =
+  "https://docs.google.com/forms/d/e/1FAIpQLScFtYj53oDsLnI6ZHZ7vPp4BWplQZbZI6KXNaKvnfJQyksVfQ/viewform?usp=header";
+
 function App() {
   const [connected, setConnected] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
@@ -24,7 +27,9 @@ function App() {
     []
   );
   const [error, setError] = useState(false);
-  const [internetStatus, setInternetStatus] = useState<ConnectionStatus | null>(null);
+  const [internetStatus, setInternetStatus] = useState<ConnectionStatus | null>(
+    null
+  );
 
   // Initialize app state on startup
   useEffect(() => {
@@ -93,6 +98,7 @@ function App() {
 
       // Listen for status updates
       window.electron.onConnectionStatus((status: ConnectionStatus) => {
+        console.log(status)
         setInternetStatus(status);
 
         // Show toast only on status change
@@ -200,7 +206,7 @@ function App() {
 
   // Periodically check connection status (only after initial load)
   useEffect(() => {
-    if (isInitializing) return; // Don't start periodic checks until initial load is complete
+    if (isInitializing || !connected) return; // Don't start periodic checks until initial load is complete
 
     const checkStatus = async () => {
       try {
@@ -237,15 +243,23 @@ function App() {
     const interval = setInterval(checkStatus, 30000);
 
     return () => clearInterval(interval);
-  }, [isInitializing]);
+  }, [isInitializing, connected]);
 
-   // Show loading state while initializing
-   if (!internetStatus?.isOnline) {
+  const openForm = () => {
+    window.electron.openExternal(google_form)
+  };
+
+  // Show loading state while initializing
+  if (!internetStatus?.isOnline) {
     return (
       <div className="app-bg min-h-screen min-w-screen bg-[#232733] text-white flex items-center justify-center">
         <div className="text-center">
-          <div className="text-xl font-medium mb-4">Your are not connected to the internet</div>
-          <div className="text-gray-400">Please check your internet connection!</div>
+          <div className="text-xl font-medium mb-4">
+            Your are not connected to the internet
+          </div>
+          <div className="text-gray-400">
+            Please check your internet connection!
+          </div>
         </div>
       </div>
     );
@@ -297,8 +311,9 @@ function App() {
           Tao Private Network
         </div>
         <div
-          className={`font-semibold text-xs sm:text-sm ${connected ? "text-green-400" : "text-red-400"
-            }`}
+          className={`font-semibold text-xs sm:text-sm ${
+            connected ? "text-green-400" : "text-red-400"
+          }`}
         >
           {connected ? "CONNECTED" : "NOT CONNECTED"}
         </div>
@@ -344,14 +359,23 @@ function App() {
               <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></div>
               <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-blue-500 rounded-full"></div>
               <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></div>
-              <img
-                src={tpnLogo}
-                alt="TPN Logo"
-                className="h-6 sm:h-8 w-auto"
-              />
+              <img src={tpnLogo} alt="TPN Logo" className="h-6 sm:h-8 w-auto" />
             </div>
           </div>
         )}
+        <a
+          onClick={openForm}
+          className="absolute bottom-3 sm:bottom-8 right-3 sm:right-8 z-20 flex items-center gap-2 cursor-pointer"
+        >
+          <div className="bg-[#181A20] px-3 sm:px-4 py-2 flex items-center gap-2 border border-blue-500 relative">
+            {/* Corner dots */}
+            <div className="absolute -top-1 -left-1 w-2 h-2 bg-blue-500 rounded-full"></div>
+            <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></div>
+            <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-blue-500 rounded-full"></div>
+            <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></div>
+           Share Your Feedback
+          </div>
+        </a>
       </div>
     </div>
   );
