@@ -50,6 +50,7 @@ interface Window {
     startSpeedTest: () => Promise<{ success: boolean }>;
     onSpeedTestProgress: (callback: (data: SpeedTestProgress) => void) => void;
     onConnectionStatus: (callback: (status: ConnectionStatus) => void) => void;
+    openExternal: (url: string) => void;
   };
 }
 
