@@ -362,7 +362,7 @@ function App() {
             </div>
           </div>
         )}
-        <a
+        <div
           onClick={openForm}
           className="absolute bottom-3 sm:bottom-8 right-3 sm:right-8 z-20 flex items-center gap-2 cursor-pointer"
         >
@@ -374,7 +374,7 @@ function App() {
             <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></div>
            Share Your Feedback
           </div>
-        </a>
+        </div>
       </div>
     </div>
   );
