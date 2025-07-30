@@ -1,15 +1,10 @@
-import { contextBridge, ipcRenderer } from 'electron';
-import { openInBrowser } from './shell';
+const electron = require("electron")
 
 
 // Expose APIs to renderer process
-contextBridge.exposeInMainWorld("electron", {
+electron.contextBridge.exposeInMainWorld("electron", {
   openExternal: async (url: string): Promise<void> => {
-    try {
-      await openInBrowser(url);
-    } catch (error) {
-      console.error('Failed to open external URL:', error);
-    }
+    return await ipcInvoke("openExternal", url);
   },
 
   getCountries: async (): Promise<string[]> => {
@@ -39,7 +34,7 @@ contextBridge.exposeInMainWorld("electron", {
   },
 
   onSpeedTestComplete: (callback: (results: SpeedTestResult) => void) => {
-    ipcRenderer.on(
+    electron.ipcRenderer.on(
       "speedtest-complete",
       (_event: Electron.IpcRendererEvent, results: SpeedTestResult) => {
         callback(results);
@@ -48,7 +43,7 @@ contextBridge.exposeInMainWorld("electron", {
   },
 
   onConnectionStatus: (callback: (status: any) => void) => {
-    ipcRenderer.on(
+    electron.ipcRenderer.on(
       "connection-status",
       (_event: Electron.IpcRendererEvent, status: ConnectionStatus) => {
         callback(status);
@@ -62,7 +57,7 @@ function ipcInvoke<Key extends keyof EventPayloadMapping>(
   key: Key,
   ...args: any[]
 ): Promise<EventPayloadMapping[Key]> {
-  return ipcRenderer.invoke(key, ...args);
+  return electron.ipcRenderer.invoke(key, ...args);
 }
 
 interface SpeedTestResult {

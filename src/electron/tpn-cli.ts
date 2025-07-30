@@ -109,7 +109,6 @@ const exec_async_no_timeout = (command: string): Promise<string> =>
       if (stdout) return resolve(stdout)
       if (error) return reject(new Error(stderr))
       if (stderr) return reject(new Error(stderr))
-      if (stdout) return resolve(stdout)
       resolve('')
     })
   })
@@ -372,7 +371,6 @@ export const connect = async (
       command += ` --lease_minutes ${lease}`
     }
     command += ' -f'
-    command += ' -v'
 
     log(`Executing command: ${command}`)
 
@@ -380,7 +378,7 @@ export const connect = async (
     log(`Connect operation result: `, result)
 
     if (!result) {
-      throw new Error('No output received from TPN connect command')
+      throw new Error('No output received from TPN connect. Try again')
     }
 
     checkForErrors(result)
@@ -433,7 +431,7 @@ export const connect = async (
 }
 
 export const cancel = async (): Promise<boolean> => {
-  const result = await exec_async("pkill -f 'tpn connect'", 60000)
+  const result = await exec_async("pkill -f 'tpn connect'", 15000)
   log(`Cancel operation result: `, result)
   try {
     log('Checking connection status after cancel...')
@@ -456,7 +454,6 @@ export const cancel = async (): Promise<boolean> => {
     }
   } catch (statusError) {
     log('Error checking status after cancel:', statusError)
-    // If we can't check status, just return the pkill result
     return false
   }
 }
@@ -488,8 +485,7 @@ export const listCountries: any = async (): Promise<CountryData[]> => {
       }
     })
 
-    console.log('Processed countries:', countries)
-    log(`Successfully fetched ${countries.length} countries from API`)
+  log(`Successfully fetched ${countries.length} countries from API`)
 
     return countries
   } catch (error) {
@@ -503,15 +499,14 @@ export const listCountries: any = async (): Promise<CountryData[]> => {
 export const checkStatus = async (): Promise<StatusInfo> => {
   let command = `${tpn} status`
 
-  log(`Executing command: ${command}`)
-
-  const result = await exec_async(command, 5000)
-  log(`Update result: `, result)
+  const result = await exec_async(command, 30000)
+  log(`Status result: `, result)
   if (result) {
     checkForErrors(result)
-    // Parse connection status and IP - try multiple patterns
+    
+    // Updated patterns to handle empty IP case for both connected and disconnected
     let statusMatch = result.match(
-      /TPN status: (Connected|Disconnected) \(([\d.]+)\)/,
+      /TPN status: (Connected|Disconnected) \(([^)]*)\)/  // Matches anything including empty
     )
     if (!statusMatch) {
       // Try alternative pattern without parentheses
@@ -520,23 +515,25 @@ export const checkStatus = async (): Promise<StatusInfo> => {
       )
     }
     if (!statusMatch) {
-      // Try pattern with different spacing
+      // Try pattern with different spacing and optional empty parentheses
       statusMatch = result.match(
-        /TPN status:\s*(Connected|Disconnected)\s*\(?([\d.]+)\)?/,
+        /TPN status:\s*(Connected|Disconnected)\s*\(?([^)]*)\)?/,
       )
     }
-    log(`Status match: `, statusMatch)
+    
     if (statusMatch) {
       const isConnected = statusMatch[1] === 'Connected'
-      const currentIP = statusMatch[2]
-      log(`Is connected: ${isConnected}, IP: ${currentIP}`)
+      let currentIP = statusMatch[2]
+      // Handle empty IP case (can happen when connected or disconnected)
+      if (!currentIP || currentIP.trim() === '') {
+        currentIP = isConnected ? 'connected-offline' : 'offline'
+      }
 
       // If connected, try to parse lease info
       if (isConnected) {
         const leaseMatch = result.match(
           /[Ll]ease ends in (\d+) minutes \(([^)]+)\)/,
         )
-        log(`Lease match: `, leaseMatch)
 
         if (leaseMatch) {
           const minutes = parseInt(leaseMatch[1])
@@ -557,8 +554,8 @@ export const checkStatus = async (): Promise<StatusInfo> => {
           currentIP,
         }
       }
-
-      // Disconnected
+     
+      // Disconnected (online or offline)
       return {
         connected: false,
         currentIP,
@@ -574,7 +571,7 @@ export const disconnect = async (): Promise<DisconnectInfo> => {
 
     log(`Executing command: ${command}`)
 
-    const result = await exec_async(command)
+    const result = await exec_async(command, 30000)
     log(`Disconnect result: `, result)
 
     if (typeof result === 'string') {
@@ -593,25 +590,22 @@ export const disconnect = async (): Promise<DisconnectInfo> => {
           message: 'Successfully disconnected from VPN',
         }
       }
-
-      try {
-        const statusInfo = await checkStatus()
-
-        if (!statusInfo.connected) {
-          return {
-            success: true,
-            newIP: statusInfo.currentIP,
-            message: 'Successfully disconnected from VPN',
-          }
-        }
-      } catch (statusError) {
-        log('Failed to check status after disconnect:', statusError)
-        throw new Error('Failed to disconnect, try again')
-      }
     }
-
     throw new Error('Error disconnecting')
   } catch (e) {
+    try{
+    const status = await checkStatus()
+      if (!status.connected) {
+        return {
+          success: true,
+          previousIP: 'unknow',
+          newIP: 'unknow',
+          message: 'Successfully disconnected from VPN'
+        }
+      }
+    }catch(err) {
+      throw new Error("Failed to check status");
+    }
     const error = e as Error
     log(`Error during disconnect operation: `, error)
     throw new Error(`Failed to disconnect: ${error.message}`)
@@ -646,7 +640,6 @@ export const checkInternetConnection = async (): Promise<ConnectionStatus> => {
         .then(() => true)
         .catch(() => false),
     ])
-    console.log('online', online)
     return {
       isOnline: online,
       lastChecked: new Date(),
@@ -657,5 +650,26 @@ export const checkInternetConnection = async (): Promise<ConnectionStatus> => {
       isOnline: false,
       lastChecked: new Date(),
     }
+  }
+}
+
+
+export const openExternal = async (url: string): Promise<any> => {
+  try {
+    log(`Opening URL in browser: ${url}`)
+    
+    // Use the 'open' command which works on macOS
+    const command = `open "${url}"`
+    
+    const result = await exec_async(command, 5000)
+    log(`Open external result: ${result}`)
+    
+    if (result === undefined) {
+      log('URL opened successfully')
+    }
+  } catch (e) {
+    const error = e as Error
+    log(`Error opening URL in browser: ${error.message}`)
+    throw new Error(`Failed to open URL in browser: ${error.message}`)
   }
 }

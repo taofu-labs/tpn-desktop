@@ -206,7 +206,7 @@ function App() {
 
   // Periodically check connection status (only after initial load)
   useEffect(() => {
-    if (isInitializing) return; // Don't start periodic checks until initial load is complete
+    if (isInitializing || !connected) return; // Don't start periodic checks until initial load is complete
 
     const checkStatus = async () => {
       try {
@@ -247,7 +247,6 @@ function App() {
 
   const openForm = () => {
     window.electron.openExternal(google_form)
-    // window.open(google_form, "_blank", "noopener,noreferrer");
   };
 
   // Show loading state while initializing
@@ -374,7 +373,7 @@ function App() {
             <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></div>
             <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-blue-500 rounded-full"></div>
             <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></div>
-            Give Us Feedback
+           Share Your Feedback
           </div>
         </a>
       </div>

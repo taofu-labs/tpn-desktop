@@ -40,7 +40,7 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({
       },
       error: (error) => {
         console.error("Disconnect error:", error);
-        return `Failed to disconnect: Please restart application.`;
+        return `Failed to disconnect: Please try again.`;
       },
     });
 
