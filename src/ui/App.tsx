@@ -243,7 +243,7 @@ function App() {
     const interval = setInterval(checkStatus, 30000);
 
     return () => clearInterval(interval);
-  }, [isInitializing]);
+  }, [isInitializing, connected]);
 
   const openForm = () => {
     window.electron.openExternal(google_form)
