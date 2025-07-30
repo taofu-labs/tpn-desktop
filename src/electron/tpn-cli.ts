@@ -652,3 +652,24 @@ export const checkInternetConnection = async (): Promise<ConnectionStatus> => {
     }
   }
 }
+
+
+export const openExternal = async (url: string): Promise<any> => {
+  try {
+    log(`Opening URL in browser: ${url}`)
+    
+    // Use the 'open' command which works on macOS
+    const command = `open "${url}"`
+    
+    const result = await exec_async(command, 5000)
+    log(`Open external result: ${result}`)
+    
+    if (result === undefined) {
+      log('URL opened successfully')
+    }
+  } catch (e) {
+    const error = e as Error
+    log(`Error opening URL in browser: ${error.message}`)
+    throw new Error(`Failed to open URL in browser: ${error.message}`)
+  }
+}

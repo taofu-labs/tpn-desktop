@@ -1,5 +1,6 @@
 import { BrowserWindow } from "electron";
 import type { ConnectionInfo, ConnectionStatus, StatusInfo } from "./tpn-cli.js";
+const { openExternal } = await import('./tpn-cli.js');
 
 
 interface DisconnectInfo {
@@ -47,6 +48,14 @@ export interface IpcServices {
 // };
 
 export function initializeIpcHandlers(services: IpcServices): void {
+  ipcMainHandler("openExternal", async (...args: any[]) => {
+    const url = args[0];
+    if (!url || typeof url !== 'string') {
+      throw new Error('Invalid URL provided');
+    }
+    return await openExternal(url);
+  });
+
   ipcMainHandler("getCountries", async () => {
     return await services.tpnService.getCountries();
   });
