@@ -1,0 +1,46 @@
+{
+    "appId": "com.taofu.tpn-desktop",
+    "productName": "TPN Desktop",
+    "copyright": "Copyright © 2025",
+    "icon": "./src/assets/app-icon.icns",
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "files": [
+        "dist-electron/**/*",
+        "dist-react/**/*",
+        "build/**/*",
+        "package.json",
+        "README.md"
+    ],
+    "compression": "normal",
+    "extraResources": [
+        "dist-electron/preload.cjs"
+    ],
+    "extraFiles": {
+        "from": "./src/assets",
+        "to": "resources",
+        "filter": [
+            "**/*"
+        ]
+    },
+    "afterSign": "./build/aftersign_hook.js",
+    "dmg": {
+        "writeUpdateInfo": false
+    },
+    "mac": {
+        "target": "dmg",
+        "hardenedRuntime": true,
+        "gatekeeperAssess": false,
+        "entitlements": "build/entitlements.mac.plist",
+        "entitlementsInherit": "build/entitlements.mac.plist",
+        "notarize": false
+    },
+    "win": {
+        "target": [
+            "nsis"
+        ]
+    },
+    "linux": {
+        "target": "AppImage",
+        "category": "Utility"
+    }
+}
