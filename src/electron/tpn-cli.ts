@@ -1,7 +1,13 @@
 import { app } from 'electron'
 import { exec } from 'node:child_process'
 import type { ExecOptions } from 'node:child_process'
+import * as fs from 'node:fs/promises'
 import { log, alert, wait, confirm } from './helpers.js'
+import * as path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 export interface ConnectionInfo {
   connected: boolean
@@ -47,8 +53,28 @@ export interface ConnectionStatus {
 
 const { USER } = process.env
 
-const path_fix =
-  'PATH=/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin'
+const getBundledBinPath = (): string => {
+  const isDev = process.env.NODE_ENV === 'development'
+  if (isDev) {
+    return path.join(__dirname, '..', 'resources', 'bin', 'darwin')
+  } else {
+    return path.join(process.resourcesPath, 'bin', 'darwin')
+  }
+}
+
+const getBundledScriptPath = (): string => {
+  const isDev = process.env.NODE_ENV === 'development'
+  if (isDev) {
+    return path.join(__dirname, '..', 'resources', 'tpn.sh')
+  } else {
+    return path.join(process.resourcesPath, 'tpn.sh')
+  }
+}
+const bundledBinPath = getBundledBinPath()
+
+console.log("bundles", bundledBinPath)
+
+const path_fix = `PATH=${bundledBinPath}:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin`
 const tpn = `${path_fix} tpn`
 
 const shell_options: ExecOptions = {
@@ -58,6 +84,30 @@ const shell_options: ExecOptions = {
 
 //const ASYNC_LOG = '/tmp/tpn-async.log'
 const SUDO_ASYNC_LOG = '/tmp/tpn-sudo-async.log'
+
+// Make bundled binaries executable
+const setupBundledBinaries = async (): Promise<void> => {
+  try {
+    const wgPath = path.join(bundledBinPath, 'wg')
+    const wgQuickPath = path.join(bundledBinPath, 'wg-quick')
+    const wgGoPath = path.join(bundledBinPath, 'wireguard-go')
+    //const scriptPath = getBundledScriptPath()
+    
+    // Make binaries executable
+    await fs.chmod(wgPath, 0o755)
+    await fs.chmod(wgQuickPath, 0o755)
+     await fs.chmod(wgGoPath, 0o755)
+    //await fs.chmod(scriptPath, 0o755)
+    
+    log(`Made bundled binaries executable:`)
+    log(`- wg: ${wgPath}`)
+    log(`- wg-quick: ${wgQuickPath}`)
+    log(`- wireguard-go: ${wgGoPath}`)
+  } catch (error) {
+    log('Error setting up bundled binaries:', error)
+    throw new Error(`Failed to setup bundled binaries: ${error}`)
+  }
+}
 
 const checkForErrors = (output: string): void => {
   const errorPatterns = [
@@ -193,15 +243,51 @@ const verifyWireGuardInstallation = async (maxRetries = 5): Promise<void> => {
 
 export const checkSystemComponents = async (): Promise<{
   tpn_installed: any
-  wg_installed: any
-  tpn_in_visudo: any
 }> => {
-  const [tpn_installed, wg_installed, tpn_in_visudo] = await Promise.all([
+   const scriptPath = getBundledScriptPath()
+  const wgPath = path.join(bundledBinPath, 'wg')
+
+  const [tpn_installed] = await Promise.all([
     exec_async(`${path_fix} which tpn`).catch(() => false),
-    exec_async(`${path_fix} which wg-quick`).catch(() => false),
-    exec_async(`${path_fix} sudo -n wg show`).catch(() => false),
   ])
-  return { tpn_installed, wg_installed, tpn_in_visudo }
+  return { tpn_installed }
+}
+
+const verifyBundledWireGuard = async (): Promise<void> => {
+  log('Verifying bundled WireGuard installation...')
+  
+  const wgPath = path.join(bundledBinPath, 'wg')
+  const wgQuickPath = path.join(bundledBinPath, 'wg-quick')
+  
+  try {
+    await fs.access(wgPath)
+    await fs.access(wgQuickPath)
+    log('Bundled WireGuard binaries found and accessible')
+    
+    // Test if they work
+    const wgVersion = await exec_async(`${wgPath} --version`, 5000)
+    log(`WireGuard version: ${wgVersion}`)
+    
+  } catch (error) {
+    throw new Error(`Bundled WireGuard verification failed: ${error}`)
+  }
+}
+
+// Setup sudoers for bundled binaries
+const setupBundledVisudo = async (): Promise<void> => {
+  const user = USER || 'unknown'
+  const wgPath = path.join(bundledBinPath, 'wg')
+  const wgQuickPath = path.join(bundledBinPath, 'wg-quick')
+  
+  const sudoersContent = `${user} ALL=(ALL) NOPASSWD: ${wgQuickPath}, ${wgPath}`
+  const sudoersFile = '/etc/sudoers.d/tpn'
+  
+  try {
+    await exec_sudo_async(`echo '${sudoersContent}' | tee ${sudoersFile} && chmod 440 ${sudoersFile}`)
+    log(`Created sudoers entry for bundled WireGuard binaries`)
+  } catch (error) {
+    throw new Error(`Failed to setup sudoers: ${error}`)
+  }
 }
 
 export const initialize_tpn = async (): Promise<void> => {
@@ -209,6 +295,14 @@ export const initialize_tpn = async (): Promise<void> => {
     // Check if dev mode
     const { development, skipupdate } = process.env
     if (development) log(`Dev mode on, skip updates: ${skipupdate}`)
+
+      await setupBundledBinaries();
+
+       await verifyBundledWireGuard();
+
+
+
+       //await setupBundledVisudo()
 
     // Check for network
     const online = await Promise.race([
@@ -224,13 +318,14 @@ export const initialize_tpn = async (): Promise<void> => {
     // Check if tpn is installed and visudo entries are complete.
 
     const systemComponents = await checkSystemComponents()
-    const visudo_complete = systemComponents.tpn_in_visudo !== false
     const is_installed = Boolean(
-      systemComponents.tpn_installed && systemComponents.wg_installed,
+      systemComponents.tpn_installed
     )
 
+    console.log("System components", systemComponents)
+
     // If installed, update
-    if (is_installed && visudo_complete) {
+    if (is_installed) {
       if (!online) return log(`Skipping TPN update because we are offline`)
       if (skipupdate) return log(`Skipping update due to environment variable`)
       log(`Updating TPN...`)
@@ -239,7 +334,7 @@ export const initialize_tpn = async (): Promise<void> => {
     }
 
     // If not installed, run install script
-    if (!is_installed || !visudo_complete) {
+    if (!is_installed) {
       log(`Installing TPN for ${USER}...`)
       if (!online)
         await alert(
@@ -249,61 +344,10 @@ export const initialize_tpn = async (): Promise<void> => {
         await alert(
           `Welcome to TPN. The app needs to install/update some components, so it will ask for your password. This should only be needed once.`,
         )
-      if (!visudo_complete)
-        await alert(
-          `TPN needs to apply a backwards incompatible update, to do this it will ask for your password. This should not happen frequently.`,
-        )
-
-      if (!systemComponents.wg_installed) {
-        log('Installing WireGuard tools as regular user...')
-
-        // Check if Homebrew exists
-        const brewExists = await exec_async('which brew').catch(() => false)
-        if (!brewExists) {
-          await alert(
-            'Homebrew is required but not installed. Please install Homebrew first from https://brew.sh',
-          )
-          app.quit()
-          app.exit()
-          return
-        }
-
-        // Install WireGuard as regular user (not sudo)
-        try {
-          await new Promise((resolve, reject) => {
-            exec(
-              'HOMEBREW_NO_AUTO_UPDATE=1 brew install wireguard-tools',
-              { ...shell_options, timeout: 60000 },
-              (error, stdout, stderr) => {
-                if (
-                  error ||
-                  stderr.includes('Error') ||
-                  stdout.includes('Error')
-                ) {
-                  reject(
-                    new Error(
-                      `Brew failed: ${error?.message || stderr || stdout}`,
-                    ),
-                  )
-                } else {
-                  resolve(stdout)
-                }
-              },
-            )
-          })
-
-          await verifyWireGuardInstallation()
-
-          log('WireGuard installed')
-        } catch (e) {
-          const error = e as Error
-          log('Error installing WireGuard:', error)
-          await alert(`Error installing WireGuard: ${error.message}`)
-          app.quit()
-          app.exit()
-          return
-        }
-      }
+      // if (!visudo_complete)
+      //   await alert(
+      //     `TPN needs to apply a backwards incompatible update, to do this it will ask for your password. This should not happen frequently.`,
+      //   )
 
       await exec_sudo_async(
         `curl -s https://raw.githubusercontent.com/taofu-labs/tpn-cli/main/setup.sh | bash -s -- $USER`,
@@ -313,15 +357,13 @@ export const initialize_tpn = async (): Promise<void> => {
 
       const finalCheck = await checkSystemComponents()
 
-      const finalVisudoComplete = finalCheck.tpn_in_visudo !== false
       const finalInstalled = Boolean(
-        finalCheck.tpn_installed && finalCheck.wg_installed,
+        finalCheck.tpn_installed
       )
 
-      console.log('finalVisudoComplete', finalVisudoComplete)
       console.log('finalInstalled', finalInstalled)
 
-      if (!finalVisudoComplete || !finalInstalled) {
+      if (!finalInstalled) {
         console.log('throw error')
         throw new Error(
           'Installation verification failed: TPN system was not properly configured',
@@ -365,7 +407,7 @@ export const connect = async (
   lease?: number,
 ): Promise<ConnectionInfo> => {
   try {
-    let command = `${tpn} connect ${country}`
+    let command = `echo "y" | ${tpn} connect ${country}`
 
     if (lease) {
       command += ` --lease_minutes ${lease}`
