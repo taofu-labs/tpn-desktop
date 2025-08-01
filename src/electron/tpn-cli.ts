@@ -5,6 +5,7 @@ import * as fs from 'node:fs/promises'
 import { log, alert, wait, confirm } from './helpers.js'
 import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { existsSync } from 'fs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -79,9 +80,16 @@ console.log("bundles", bundledBinPath)
 const path_fix = `PATH=${bundledBinPath}:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin`
 const tpn = `${path_fix} tpn`
 
+const brewBash = existsSync('/usr/local/bin/bash')
+  ? '/usr/local/bin/bash'         // Intel Mac Homebrew default
+  : existsSync('/opt/homebrew/bin/bash')
+    ? '/opt/homebrew/bin/bash'     // Apple Silicon Homebrew default
+    : '/bin/bash'                  // Fallback (macOS-provided, or Linux, etc.)
+
 const shell_options: ExecOptions = {
-  shell: '/bin/bash',
-  env: { ...process.env, PATH: `${bundledBinPath}:${process.env.PATH}:/usr/local/bin` },
+  shell: brewBash,
+  env: { ...process.env, PATH: `${bundledBinPath}:${process.env.PATH}:/usr/local/bin`, SHELL: brewBash },
+  
 }
 
 //const ASYNC_LOG = '/tmp/tpn-async.log'
