@@ -255,10 +255,8 @@ export const initialize_tpn = async (): Promise<void> => {
         )
 
       if (!systemComponents.wg_installed) {
-        log('Installing WireGuard tools as regular user...')
-
         // Check if Homebrew exists
-        const brewExists = await exec_async('which brew').catch(() => false)
+        const brewExists = await exec_async(`${path_fix} which brew`).catch(() => false)
         if (!brewExists) {
           await alert(
             'Homebrew is required but not installed. Please install Homebrew first from https://brew.sh',
