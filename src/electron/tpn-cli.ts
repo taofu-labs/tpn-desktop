@@ -75,6 +75,11 @@ const getBundledScriptPath = (): string => {
 }
 const bundledBinPath = getBundledBinPath()
 
+const bundledBash = path.join(bundledBinPath, 'bash')
+if (!existsSync(bundledBash)) {
+  throw new Error(`Missing bundled bash at ${bundledBash}`)
+}
+
 console.log("bundles", bundledBinPath)
 
 const path_fix = `PATH=${bundledBinPath}:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin`
@@ -87,8 +92,8 @@ const brewBash = existsSync('/usr/local/bin/bash')
     : '/bin/bash'                  // Fallback (macOS-provided, or Linux, etc.)
 
 const shell_options: ExecOptions = {
-  shell: brewBash,
-  env: { ...process.env, PATH: `${bundledBinPath}:${process.env.PATH}:/usr/local/bin`, SHELL: brewBash },
+  shell: bundledBash,
+  env: { ...process.env, SHELL: bundledBash, PATH: `${bundledBinPath}:${process.env.PATH}:/usr/local/bin` },
   
 }
 
@@ -107,12 +112,14 @@ const setupBundledBinaries = async (): Promise<void> => {
     const wgPath = path.join(archPath, 'wg')
     const wgQuickPath = path.join(archPath, 'wg-quick')
     const wgGoPath = path.join(archPath, 'wireguard-go')
+     const bashPath     = path.join(archPath, 'bash')
     //const scriptPath = getBundledScriptPath()
     
     // Make binaries executable
     await fs.chmod(wgPath, 0o755)
     await fs.chmod(wgQuickPath, 0o755)
     await fs.chmod(wgGoPath, 0o755)
+    await fs.chmod(bashPath,    0o755)
 
     
     log(`Made ${arch} binaries executable:`)
