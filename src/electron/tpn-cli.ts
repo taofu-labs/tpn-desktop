@@ -92,8 +92,8 @@ const brewBash = existsSync('/usr/local/bin/bash')
     : '/bin/bash'                  // Fallback (macOS-provided, or Linux, etc.)
 
 const shell_options: ExecOptions = {
-  shell: bundledBash,
-  env: { ...process.env, SHELL: bundledBash, PATH: `${bundledBinPath}:${process.env.PATH}:/usr/local/bin` },
+  shell: '/bin/bash',
+  env: { ...process.env,  PATH: `${bundledBinPath}:${process.env.PATH}:/usr/local/bin` },
   
 }
 
@@ -112,25 +112,43 @@ const setupBundledBinaries = async (): Promise<void> => {
     const wgPath = path.join(archPath, 'wg')
     const wgQuickPath = path.join(archPath, 'wg-quick')
     const wgGoPath = path.join(archPath, 'wireguard-go')
-     const bashPath     = path.join(archPath, 'bash')
+    const bashPath = path.join(archPath, 'bash')
     //const scriptPath = getBundledScriptPath()
     
     // Make binaries executable
     await fs.chmod(wgPath, 0o755)
     await fs.chmod(wgQuickPath, 0o755)
     await fs.chmod(wgGoPath, 0o755)
-    await fs.chmod(bashPath,    0o755)
-
+    await fs.chmod(bashPath, 0o755)
+    //await fs.chmod(scriptPath, 0o755)
+    
+    // Update wg-quick shebang to use bundled bash
+    try {
+      const wgQuickContent = await fs.readFile(wgQuickPath, 'utf-8')
+      const updatedContent = wgQuickContent.replace(
+        '#!/usr/bin/env bash',
+        `#!${bashPath}`
+      )
+      await fs.writeFile(wgQuickPath, updatedContent)
+      log(`Updated wg-quick to use bundled bash: ${bashPath}`)
+    } catch (error) {
+      log('Warning: Could not update wg-quick shebang:', error)
+    }
     
     log(`Made ${arch} binaries executable:`)
     log(`- wg: ${wgPath}`)
     log(`- wg-quick: ${wgQuickPath}`)
     log(`- wireguard-go: ${wgGoPath}`)
+    log(`- bash: ${bashPath}`)
+    //log(`- tpn.sh: ${scriptPath}`)
   } catch (error) {
     log('Error setting up bundled binaries:', error)
     throw new Error(`Failed to setup bundled binaries: ${error}`)
   }
 }
+
+
+
 const checkForErrors = (output: string): void => {
   const errorPatterns = [
     /Error: (.+)/, // Catches any "Error: ..." message
