@@ -55,11 +55,13 @@ const { USER } = process.env
 
 const getBundledBinPath = (): string => {
   const isDev = process.env.NODE_ENV === 'development'
-  if (isDev) {
-    return path.join(__dirname, '..', 'resources', 'bin', 'darwin')
-  } else {
-    return path.join(process.resourcesPath, 'bin', 'darwin')
-  }
+  const arch = process.arch === 'arm64' ? 'arm64' : 'x64'
+  console.log("my arch", arch)
+  const basePath = isDev 
+    ? path.join(__dirname, '..', 'resources', 'bin')
+    : path.join(process.resourcesPath, 'bin')
+  
+  return path.join(basePath, `darwin-${arch}`)
 }
 
 const getBundledScriptPath = (): string => {
@@ -79,7 +81,7 @@ const tpn = `${path_fix} tpn`
 
 const shell_options: ExecOptions = {
   shell: '/bin/bash',
-  env: { ...process.env, PATH: `${process.env.PATH}:/usr/local/bin` },
+  env: { ...process.env, PATH: `${bundledBinPath}:${process.env.PATH}:/usr/local/bin` },
 }
 
 //const ASYNC_LOG = '/tmp/tpn-async.log'
@@ -88,18 +90,24 @@ const SUDO_ASYNC_LOG = '/tmp/tpn-sudo-async.log'
 // Make bundled binaries executable
 const setupBundledBinaries = async (): Promise<void> => {
   try {
-    const wgPath = path.join(bundledBinPath, 'wg')
-    const wgQuickPath = path.join(bundledBinPath, 'wg-quick')
-    const wgGoPath = path.join(bundledBinPath, 'wireguard-go')
+    const arch = process.arch
+    const archPath = getBundledBinPath()
+    
+    log(`Detected architecture: ${arch}`)
+    log(`Using binary path: ${archPath}`)
+    
+    const wgPath = path.join(archPath, 'wg')
+    const wgQuickPath = path.join(archPath, 'wg-quick')
+    const wgGoPath = path.join(archPath, 'wireguard-go')
     //const scriptPath = getBundledScriptPath()
     
     // Make binaries executable
     await fs.chmod(wgPath, 0o755)
     await fs.chmod(wgQuickPath, 0o755)
-     await fs.chmod(wgGoPath, 0o755)
-    //await fs.chmod(scriptPath, 0o755)
+    await fs.chmod(wgGoPath, 0o755)
+
     
-    log(`Made bundled binaries executable:`)
+    log(`Made ${arch} binaries executable:`)
     log(`- wg: ${wgPath}`)
     log(`- wg-quick: ${wgQuickPath}`)
     log(`- wireguard-go: ${wgGoPath}`)
@@ -108,7 +116,6 @@ const setupBundledBinaries = async (): Promise<void> => {
     throw new Error(`Failed to setup bundled binaries: ${error}`)
   }
 }
-
 const checkForErrors = (output: string): void => {
   const errorPatterns = [
     /Error: (.+)/, // Catches any "Error: ..." message
@@ -278,13 +285,23 @@ const setupBundledVisudo = async (): Promise<void> => {
   const user = USER || 'unknown'
   const wgPath = path.join(bundledBinPath, 'wg')
   const wgQuickPath = path.join(bundledBinPath, 'wg-quick')
-  
-  const sudoersContent = `${user} ALL=(ALL) NOPASSWD: ${wgQuickPath}, ${wgPath}`
   const sudoersFile = '/etc/sudoers.d/tpn'
-  
+  const sudoersContent = `${user} ALL=(ALL) NOPASSWD: ${wgQuickPath}, ${wgPath}`
+
   try {
-    await exec_sudo_async(`echo '${sudoersContent}' | tee ${sudoersFile} && chmod 440 ${sudoersFile}`)
-    log(`Created sudoers entry for bundled WireGuard binaries`)
+    // Check if the sudoers file already exists
+    await exec_async_no_timeout(`test -f ${sudoersFile}`)
+    log(`Sudoers entry already exists at ${sudoersFile}, skipping setup`)
+    return
+  } catch {
+    // File does not exist, proceed to create it
+  }
+
+  try {
+    // Write the sudoers entry with correct permissions
+    const command = `echo '${sudoersContent}' | sudo tee ${sudoersFile} >/dev/null && sudo chmod 440 ${sudoersFile}`
+    await exec_sudo_async(command)
+    log(`Created sudoers entry for bundled WireGuard binaries at ${sudoersFile}`)
   } catch (error) {
     throw new Error(`Failed to setup sudoers: ${error}`)
   }
@@ -299,8 +316,6 @@ export const initialize_tpn = async (): Promise<void> => {
       await setupBundledBinaries();
 
        await verifyBundledWireGuard();
-
-
 
        //await setupBundledVisudo()
 
@@ -353,6 +368,7 @@ export const initialize_tpn = async (): Promise<void> => {
         `curl -s https://raw.githubusercontent.com/taofu-labs/tpn-cli/main/setup.sh | bash -s -- $USER`,
       )
 
+      await setupBundledVisudo()
       //Check Sytem component for the last time
 
       const finalCheck = await checkSystemComponents()
@@ -372,6 +388,8 @@ export const initialize_tpn = async (): Promise<void> => {
 
       await alert(`TPN background components installed successfully.`)
     }
+
+    await setupBundledVisudo()
 
     // Basic user tracking on app open, run it in the background so it does not cause any delay for the user
     if (online)

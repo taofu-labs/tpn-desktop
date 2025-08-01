@@ -41,7 +41,7 @@ die() {
 
 [[ ${BASH_VERSINFO[0]} -ge 4 ]] || die "Version mismatch: bash ${BASH_VERSINFO[0]} detected, when bash 4+ required"
 
-CONFIG_SEARCH_PATHS=( /etc/wireguard /usr/local/etc/wireguard )
+CONFIG_SEARCH_PATHS=( /etc/wireguard /usr/local/etc/wireguard /opt/homebrew/etc/wireguard )
 
 parse_options() {
 	local interface_section=0 line key value stripped path v
@@ -452,8 +452,8 @@ cmd_up() {
 	local i
 	get_real_interface && die "\`$INTERFACE' already exists as \`$REAL_INTERFACE'"
 	trap 'del_if; del_routes; exit' INT TERM EXIT
-	execute_hooks "${PRE_UP[@]}"
 	add_if
+	execute_hooks "${PRE_UP[@]}"
 	set_config
 	for i in "${ADDRESSES[@]}"; do
 		add_addr "$i"
