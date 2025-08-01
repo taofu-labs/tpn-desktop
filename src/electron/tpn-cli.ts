@@ -92,8 +92,8 @@ const brewBash = existsSync('/usr/local/bin/bash')
     : '/bin/bash'                  // Fallback (macOS-provided, or Linux, etc.)
 
 const shell_options: ExecOptions = {
-  shell: '/bin/bash',
-  env: { ...process.env,  PATH: `${bundledBinPath}:${process.env.PATH}:/usr/local/bin` },
+  shell: path.join(getBundledBinPath(), 'bash'),
+  env: { ...process.env,  PATH: `${bundledBinPath}:${process.env.PATH}:/usr/local/bin`, BASH: path.join(getBundledBinPath(), 'bash') },
   
 }
 
