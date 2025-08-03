@@ -159,12 +159,12 @@ const verifyWireGuardInstallation = async (maxRetries = 5): Promise<void> => {
 
     const [wgQuickCheck, wgCheck] = await Promise.all([
       new Promise<string>((resolve) => {
-        exec('which wg-quick', shell_options, (_error, stdout) => {
+        exec(`${path_fix} which wg-quick`, shell_options, (_error, stdout) => {
           resolve(stdout.trim())
         })
       }),
       new Promise<string>((resolve) => {
-        exec('which wg', shell_options, (_error, stdout) => {
+        exec(`${path_fix} which wg`, shell_options, (_error, stdout) => {
           resolve(stdout.trim())
         })
       }),
@@ -245,13 +245,9 @@ export const initialize_tpn = async (): Promise<void> => {
         await alert(
           `TPN needs an internet connection to download the latest version, please connect to the internet and open the app again.`,
         )
-      if (!is_installed)
+      if (!is_installed || !visudo_complete)
         await alert(
           `Welcome to TPN. The app needs to install/update some components, so it will ask for your password. This should only be needed once.`,
-        )
-      if (!visudo_complete)
-        await alert(
-          `TPN needs to apply a backwards incompatible update, to do this it will ask for your password. This should not happen frequently.`,
         )
 
       if (!systemComponents.wg_installed) {
@@ -270,7 +266,7 @@ export const initialize_tpn = async (): Promise<void> => {
         try {
           await new Promise((resolve, reject) => {
             exec(
-              'HOMEBREW_NO_AUTO_UPDATE=1 brew install wireguard-tools',
+              `${path_fix} HOMEBREW_NO_AUTO_UPDATE=1 brew install wireguard-tools`,
               { ...shell_options, timeout: 60000 },
               (error, stdout, stderr) => {
                 if (
@@ -429,7 +425,7 @@ export const connect = async (
 }
 
 export const cancel = async (): Promise<boolean> => {
-  const result = await exec_async("pkill -f 'tpn connect'", 15000)
+  const result = await exec_async(`${path_fix} pkill -f 'tpn connect'`, 15000)
   log(`Cancel operation result: `, result)
   try {
     log('Checking connection status after cancel...')
