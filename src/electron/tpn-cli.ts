@@ -65,35 +65,37 @@ const getBundledBinPath = (): string => {
   return path.join(basePath, `darwin-${arch}`)
 }
 
-const getBundledScriptPath = (): string => {
-  const isDev = process.env.NODE_ENV === 'development'
-  if (isDev) {
-    return path.join(__dirname, '..', 'resources', 'tpn.sh')
-  } else {
-    return path.join(process.resourcesPath, 'tpn.sh')
-  }
-}
+// const getBundledScriptPath = (): string => {
+//   const isDev = process.env.NODE_ENV === 'development'
+//   if (isDev) {
+//     return path.join(__dirname, '..', 'resources', 'tpn.sh')
+//   } else {
+//     return path.join(process.resourcesPath, 'tpn.sh')
+//   }
+// }
 const bundledBinPath = getBundledBinPath()
+
+log("Bundled path", bundledBinPath)
 
 const bundledBash = path.join(bundledBinPath, 'bash')
 if (!existsSync(bundledBash)) {
   throw new Error(`Missing bundled bash at ${bundledBash}`)
 }
 
-console.log("bundles", bundledBinPath)
+log("bundles", bundledBinPath)
 
-const path_fix = `PATH=${bundledBinPath}:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin`
+const path_fix = `PATH="${bundledBinPath}":/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin`
 const tpn = `${path_fix} tpn`
 
-const brewBash = existsSync('/usr/local/bin/bash')
-  ? '/usr/local/bin/bash'         // Intel Mac Homebrew default
-  : existsSync('/opt/homebrew/bin/bash')
-    ? '/opt/homebrew/bin/bash'     // Apple Silicon Homebrew default
-    : '/bin/bash'                  // Fallback (macOS-provided, or Linux, etc.)
+// const brewBash = existsSync('/usr/local/bin/bash')
+//   ? '/usr/local/bin/bash'         // Intel Mac Homebrew default
+//   : existsSync('/opt/homebrew/bin/bash')
+//     ? '/opt/homebrew/bin/bash'     // Apple Silicon Homebrew default
+//     : '/bin/bash'                  // Fallback (macOS-provided, or Linux, etc.)
 
 const shell_options: ExecOptions = {
   shell: path.join(getBundledBinPath(), 'bash'),
-  env: { ...process.env,  PATH: `${bundledBinPath}:${process.env.PATH}:/usr/local/bin`, BASH: path.join(getBundledBinPath(), 'bash') },
+  env: { ...process.env,  PATH: `"${bundledBinPath}":${process.env.PATH}:/usr/local/bin`, BASH: path.join(getBundledBinPath(), 'bash') },
   
 }
 
@@ -241,55 +243,56 @@ const exec_sudo_async = (command: string) =>
   })
 
 // Verify WireGuard installation with retry logic
-const verifyWireGuardInstallation = async (maxRetries = 5): Promise<void> => {
-  log('Verifying WireGuard installation...')
+// const verifyWireGuardInstallation = async (maxRetries = 5): Promise<void> => {
+//   log('Verifying WireGuard installation...')
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    log(`Verification attempt ${attempt}/${maxRetries}...`)
+//   for (let attempt = 1; attempt <= maxRetries; attempt++) {
+//     log(`Verification attempt ${attempt}/${maxRetries}...`)
 
-    const [wgQuickCheck, wgCheck] = await Promise.all([
-      new Promise<string>((resolve) => {
-        exec('which wg-quick', shell_options, (_error, stdout) => {
-          resolve(stdout.trim())
-        })
-      }),
-      new Promise<string>((resolve) => {
-        exec('which wg', shell_options, (_error, stdout) => {
-          resolve(stdout.trim())
-        })
-      }),
-    ])
+//     const [wgQuickCheck, wgCheck] = await Promise.all([
+//       new Promise<string>((resolve) => {
+//         exec('which wg-quick', shell_options, (_error, stdout) => {
+//           resolve(stdout.trim())
+//         })
+//       }),
+//       new Promise<string>((resolve) => {
+//         exec('which wg', shell_options, (_error, stdout) => {
+//           resolve(stdout.trim())
+//         })
+//       }),
+//     ])
 
-    if (wgQuickCheck && wgCheck) {
-      log('WireGuard installation verified successfully')
-      log(`wg-quick: ${wgQuickCheck}`)
-      log(`wg: ${wgCheck}`)
-      return
-    }
+//     if (wgQuickCheck && wgCheck) {
+//       log('WireGuard installation verified successfully')
+//       log(`wg-quick: ${wgQuickCheck}`)
+//       log(`wg: ${wgCheck}`)
+//       return
+//     }
 
-    if (attempt < maxRetries) {
-      const delay = Math.min(1000 * attempt, 5000) // 1s, 2s, 3s, 4s, 5s max
-      log(
-        `Binaries not ready yet (wg-quick: ${!!wgQuickCheck}, wg: ${!!wgCheck}), waiting ${delay}ms...`,
-      )
-      await new Promise((resolve) => setTimeout(resolve, delay))
-    }
-  }
+//     if (attempt < maxRetries) {
+//       const delay = Math.min(1000 * attempt, 5000) // 1s, 2s, 3s, 4s, 5s max
+//       log(
+//         `Binaries not ready yet (wg-quick: ${!!wgQuickCheck}, wg: ${!!wgCheck}), waiting ${delay}ms...`,
+//       )
+//       await new Promise((resolve) => setTimeout(resolve, delay))
+//     }
+//   }
 
-  throw new Error(
-    `WireGuard installation verification failed after ${maxRetries} attempts. Binaries may not have been installed correctly.`,
-  )
-}
+//   throw new Error(
+//     `WireGuard installation verification failed after ${maxRetries} attempts. Binaries may not have been installed correctly.`,
+//   )
+// }
 
 export const checkSystemComponents = async (): Promise<{
   tpn_installed: any
 }> => {
-   const scriptPath = getBundledScriptPath()
-  const wgPath = path.join(bundledBinPath, 'wg')
+  //  const scriptPath = getBundledScriptPath()
+  // const wgPath = path.join(bundledBinPath, 'wg')
 
   const [tpn_installed] = await Promise.all([
     exec_async(`${path_fix} which tpn`).catch(() => false),
   ])
+  log("TPN installed", tpn_installed)
   return { tpn_installed }
 }
 
@@ -305,7 +308,7 @@ const verifyBundledWireGuard = async (): Promise<void> => {
     log('Bundled WireGuard binaries found and accessible')
     
     // Test if they work
-    const wgVersion = await exec_async(`${wgPath} --version`, 5000)
+     const wgVersion = await exec_async(`"${wgPath}" --version`, 5000)
     log(`WireGuard version: ${wgVersion}`)
     
   } catch (error) {
@@ -464,6 +467,7 @@ export const connect = async (
       command += ` --lease_minutes ${lease}`
     }
     command += ' -f'
+      command += ' -v'
 
     log(`Executing command: ${command}`)
 

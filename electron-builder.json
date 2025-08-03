@@ -13,7 +13,12 @@
     ],
     "compression": "normal",
     "extraResources": [
-        "dist-electron/preload.cjs"
+        "dist-electron/preload.cjs",
+         {
+            "from": "resources",
+            "to": ".",
+            "filter": ["**/*"]
+        }
     ],
     "extraFiles": {
         "from": "./src/assets",
@@ -22,7 +27,7 @@
             "**/*"
         ]
     },
-    "afterSign": "./build/aftersign_hook.js",
+ 
     "dmg": {
         "writeUpdateInfo": false
     },
