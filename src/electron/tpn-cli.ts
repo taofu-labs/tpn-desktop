@@ -308,7 +308,7 @@ export const initialize_tpn = async (): Promise<void> => {
       }
 
      const setupResult = await exec_sudo_async(
-        `${path_fix} curl -s https://raw.githubusercontent.com/taofu-labs/tpn-cli/main/setup.sh | bash -s -- $USER`,
+        `export ${path_fix} && curl -s https://raw.githubusercontent.com/taofu-labs/tpn-cli/main/setup.sh | ${path_fix} bash -s -- ${USER}`,
       )
 
       log("Setup result", setupResult)
