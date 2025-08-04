@@ -106,6 +106,8 @@ const exec_async_no_timeout = (command: string): Promise<string> =>
   new Promise((resolve, reject) => {
     log(`Executing ${command}`)
     exec(command, shell_options, (error, stdout, stderr) => {
+      log("stderr", stderr)
+      log("err", error)
       if (stdout) return resolve(stdout)
       if (error) return reject(new Error(stderr))
       if (stderr) return reject(new Error(stderr))
@@ -201,6 +203,9 @@ export const checkSystemComponents = async (): Promise<{
     exec_async(`${path_fix} which wg-quick`).catch(() => false),
     exec_async(`${path_fix} sudo -n wg show`).catch(() => false),
   ])
+  log("tpn installed", tpn_installed)
+  log("wg installed", wg_installed)
+  log("tpn visudo", tpn_in_visudo)
   return { tpn_installed, wg_installed, tpn_in_visudo }
 }
 
@@ -228,6 +233,9 @@ export const initialize_tpn = async (): Promise<void> => {
     const is_installed = Boolean(
       systemComponents.tpn_installed && systemComponents.wg_installed,
     )
+
+    log("visudo_complete", visudo_complete)
+    log("is_installed", is_installed)
 
     // If installed, update
     if (is_installed && visudo_complete) {
@@ -299,9 +307,11 @@ export const initialize_tpn = async (): Promise<void> => {
         }
       }
 
-      await exec_sudo_async(
-        `curl -s https://raw.githubusercontent.com/taofu-labs/tpn-cli/main/setup.sh | bash -s -- $USER`,
+     const setupResult = await exec_sudo_async(
+        `${path_fix} curl -s https://raw.githubusercontent.com/taofu-labs/tpn-cli/main/setup.sh | bash -s -- $USER`,
       )
+
+      log("Setup result", setupResult)
 
       //Check Sytem component for the last time
 
@@ -312,8 +322,8 @@ export const initialize_tpn = async (): Promise<void> => {
         finalCheck.tpn_installed && finalCheck.wg_installed,
       )
 
-      console.log('finalVisudoComplete', finalVisudoComplete)
-      console.log('finalInstalled', finalInstalled)
+      log('finalVisudoComplete', finalVisudoComplete)
+      log('finalInstalled', finalInstalled)
 
       if (!finalVisudoComplete || !finalInstalled) {
         console.log('throw error')
