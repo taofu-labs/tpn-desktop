@@ -6,6 +6,7 @@ import { log, alert, wait, confirm } from './helpers.js'
 import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { existsSync } from 'fs'
+import crypto from 'crypto'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -57,11 +58,11 @@ const { USER } = process.env
 const getBundledBinPath = (): string => {
   const isDev = process.env.NODE_ENV === 'development'
   const arch = process.arch === 'arm64' ? 'arm64' : 'x64'
-  console.log("my arch", arch)
-  const basePath = isDev 
+  console.log('my arch', arch)
+  const basePath = isDev
     ? path.join(__dirname, '..', 'resources', 'bin')
     : path.join(process.resourcesPath, 'bin')
-  
+
   return path.join(basePath, `darwin-${arch}`)
 }
 
@@ -75,14 +76,14 @@ const getBundledBinPath = (): string => {
 // }
 const bundledBinPath = getBundledBinPath()
 
-log("Bundled path", bundledBinPath)
+log('Bundled path', bundledBinPath)
 
 const bundledBash = path.join(bundledBinPath, 'bash')
 if (!existsSync(bundledBash)) {
   throw new Error(`Missing bundled bash at ${bundledBash}`)
 }
 
-log("bundles", bundledBinPath)
+log('bundles', bundledBinPath)
 
 const path_fix = `PATH="${bundledBinPath}":/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin`
 const tpn = `${path_fix} tpn`
@@ -95,15 +96,18 @@ const tpn = `${path_fix} tpn`
 
 const shell_options: ExecOptions = {
   shell: path.join(getBundledBinPath(), 'bash'),
-  env: { ...process.env,  PATH: `"${bundledBinPath}":${process.env.PATH}:/usr/local/bin`, BASH: path.join(getBundledBinPath(), 'bash') },
-  
+  env: {
+    ...process.env,
+    PATH: `"${bundledBinPath}":${process.env.PATH}:/usr/local/bin`,
+    BASH: path.join(getBundledBinPath(), 'bash'),
+  },
 }
 
 const testBinary = async () => {
   try {
-  const bundledBinPath = getBundledBinPath()
-  const bashPath = `"${bundledBinPath}/bash"`
-   const version = await exec_async(`${bashPath} --version`)
+    const bundledBinPath = getBundledBinPath()
+    const bashPath = `"${bundledBinPath}/bash"`
+    const version = await exec_async(`${bashPath} --version`)
     log('BASH Version:', version)
   } catch (error) {
     log('Binary test failed:', error)
@@ -118,36 +122,35 @@ const setupBundledBinaries = async (): Promise<void> => {
   try {
     const arch = process.arch
     const archPath = getBundledBinPath()
-    
+
     log(`Detected architecture: ${arch}`)
     log(`Using binary path: ${archPath}`)
-    
+
     const wgPath = path.join(archPath, 'wg')
     const wgQuickPath = path.join(archPath, 'wg-quick')
     const wgGoPath = path.join(archPath, 'wireguard-go')
     const bashPath = path.join(archPath, 'bash')
     //const scriptPath = getBundledScriptPath()
-    
+
     // Make binaries executable
     await fs.chmod(wgPath, 0o755)
     await fs.chmod(wgQuickPath, 0o755)
     await fs.chmod(wgGoPath, 0o755)
     await fs.chmod(bashPath, 0o755)
     //await fs.chmod(scriptPath, 0o755)
-    
+
     // Update wg-quick shebang to use bundled bash
     try {
       const wgQuickContent = await fs.readFile(wgQuickPath, 'utf-8')
-      const updatedContent = wgQuickContent.replace(
-        '#!/usr/bin/env bash',
-        `#!${bashPath}`
-      )
+      const lines = wgQuickContent.split('\n')
+      lines[0] = `#!${bashPath}`
+      const updatedContent = lines.join('\n')
       await fs.writeFile(wgQuickPath, updatedContent)
       log(`Updated wg-quick to use bundled bash: ${bashPath}`)
     } catch (error) {
       log('Warning: Could not update wg-quick shebang:', error)
     }
-    
+
     log(`Made ${arch} binaries executable:`)
     log(`- wg: ${wgPath}`)
     log(`- wg-quick: ${wgQuickPath}`)
@@ -159,8 +162,6 @@ const setupBundledBinaries = async (): Promise<void> => {
     throw new Error(`Failed to setup bundled binaries: ${error}`)
   }
 }
-
-
 
 const checkForErrors = (output: string): void => {
   const errorPatterns = [
@@ -209,9 +210,9 @@ const exec_async_no_timeout = (command: string): Promise<string> =>
   new Promise((resolve, reject) => {
     log(`Executing ${command}`)
     exec(command, shell_options, (error, stdout, stderr) => {
-        if (stdout) log('STDOUT:', stdout)
-        if (stderr) log('STDERR:', stderr)
-        if (error) log('ERROR:', error)
+      if (stdout) log('STDOUT:', stdout)
+      if (stderr) log('STDERR:', stderr)
+      if (error) log('ERROR:', error)
       if (stdout) return resolve(stdout)
       if (error) return reject(new Error(stderr))
       if (stderr) return reject(new Error(stderr))
@@ -306,25 +307,24 @@ export const checkSystemComponents = async (): Promise<{
   const [tpn_installed] = await Promise.all([
     exec_async(`${path_fix} which tpn`).catch(() => false),
   ])
-  log("TPN installed", tpn_installed)
+  log('TPN installed', tpn_installed)
   return { tpn_installed }
 }
 
 const verifyBundledWireGuard = async (): Promise<void> => {
   log('Verifying bundled WireGuard installation...')
-  
+
   const wgPath = path.join(bundledBinPath, 'wg')
   const wgQuickPath = path.join(bundledBinPath, 'wg-quick')
-  
+
   try {
     await fs.access(wgPath)
     await fs.access(wgQuickPath)
     log('Bundled WireGuard binaries found and accessible')
-    
+
     // Test if they work
-     const wgVersion = await exec_async(`"${wgPath}" --version`, 5000)
+    const wgVersion = await exec_async(`"${wgPath}" --version`, 5000)
     log(`WireGuard version: ${wgVersion}`)
-    
   } catch (error) {
     throw new Error(`Bundled WireGuard verification failed: ${error}`)
   }
@@ -335,8 +335,16 @@ const setupBundledVisudo = async (): Promise<void> => {
   const user = USER || 'unknown'
   const wgPath = path.join(bundledBinPath, 'wg')
   const wgQuickPath = path.join(bundledBinPath, 'wg-quick')
-  const sudoersFile = '/etc/sudoers.d/bundle-tpn'
+
+  // Generate a unique slug from the app's base path
+  const slugify = (input: string) =>
+    crypto.createHash('sha256').update(input).digest('hex').slice(0, 10)
+
+  const slug = slugify(__dirname)
+  const sudoersFile = `/etc/sudoers.d/tpn-${slug}`
   const sudoersContent = `${user} ALL=(ALL) NOPASSWD: ${wgQuickPath}, ${wgPath}`
+
+  log("sudoersFile", sudoersFile)
 
   try {
     // Check if the sudoers file already exists
@@ -363,12 +371,12 @@ export const initialize_tpn = async (): Promise<void> => {
     const { development, skipupdate } = process.env
     if (development) log(`Dev mode on, skip updates: ${skipupdate}`)
 
-      await setupBundledBinaries();
+    await setupBundledBinaries()
 
-       await verifyBundledWireGuard();
-       
-       await testBinary();
-       //await setupBundledVisudo()
+    await verifyBundledWireGuard()
+
+    await testBinary()
+    //await setupBundledVisudo()
 
     // Check for network
     const online = await Promise.race([
@@ -384,11 +392,9 @@ export const initialize_tpn = async (): Promise<void> => {
     // Check if tpn is installed and visudo entries are complete.
 
     const systemComponents = await checkSystemComponents()
-    const is_installed = Boolean(
-      systemComponents.tpn_installed
-    )
+    const is_installed = Boolean(systemComponents.tpn_installed)
 
-    console.log("System components", systemComponents)
+    console.log('System components', systemComponents)
 
     // If installed, update
     if (is_installed) {
@@ -424,11 +430,9 @@ export const initialize_tpn = async (): Promise<void> => {
 
       const finalCheck = await checkSystemComponents()
 
-      const finalInstalled = Boolean(
-        finalCheck.tpn_installed
-      )
+      const finalInstalled = Boolean(finalCheck.tpn_installed)
 
-      console.log('finalInstalled', finalInstalled)
+      log('finalInstalled', finalInstalled)
 
       if (!finalInstalled) {
         console.log('throw error')
@@ -482,7 +486,7 @@ export const connect = async (
       command += ` --lease_minutes ${lease}`
     }
     command += ' -f'
-      command += ' -v'
+    command += ' -v'
 
     log(`Executing command: ${command}`)
 
@@ -597,7 +601,7 @@ export const listCountries: any = async (): Promise<CountryData[]> => {
       }
     })
 
-  log(`Successfully fetched ${countries.length} countries from API`)
+    log(`Successfully fetched ${countries.length} countries from API`)
 
     return countries
   } catch (error) {
@@ -615,10 +619,10 @@ export const checkStatus = async (): Promise<StatusInfo> => {
   log(`Status result: `, result)
   if (result) {
     checkForErrors(result)
-    
+
     // Updated patterns to handle empty IP case for both connected and disconnected
     let statusMatch = result.match(
-      /TPN status: (Connected|Disconnected) \(([^)]*)\)/  // Matches anything including empty
+      /TPN status: (Connected|Disconnected) \(([^)]*)\)/, // Matches anything including empty
     )
     if (!statusMatch) {
       // Try alternative pattern without parentheses
@@ -632,7 +636,7 @@ export const checkStatus = async (): Promise<StatusInfo> => {
         /TPN status:\s*(Connected|Disconnected)\s*\(?([^)]*)\)?/,
       )
     }
-    
+
     if (statusMatch) {
       const isConnected = statusMatch[1] === 'Connected'
       let currentIP = statusMatch[2]
@@ -666,7 +670,7 @@ export const checkStatus = async (): Promise<StatusInfo> => {
           currentIP,
         }
       }
-     
+
       // Disconnected (online or offline)
       return {
         connected: false,
@@ -705,18 +709,18 @@ export const disconnect = async (): Promise<DisconnectInfo> => {
     }
     throw new Error('Error disconnecting')
   } catch (e) {
-    try{
-    const status = await checkStatus()
+    try {
+      const status = await checkStatus()
       if (!status.connected) {
         return {
           success: true,
           previousIP: 'unknow',
           newIP: 'unknow',
-          message: 'Successfully disconnected from VPN'
+          message: 'Successfully disconnected from VPN',
         }
       }
-    }catch(err) {
-      throw new Error("Failed to check status");
+    } catch (err) {
+      throw new Error('Failed to check status')
     }
     const error = e as Error
     log(`Error during disconnect operation: `, error)
@@ -765,17 +769,16 @@ export const checkInternetConnection = async (): Promise<ConnectionStatus> => {
   }
 }
 
-
 export const openExternal = async (url: string): Promise<any> => {
   try {
     log(`Opening URL in browser: ${url}`)
-    
+
     // Use the 'open' command which works on macOS
     const command = `open "${url}"`
-    
+
     const result = await exec_async(command, 5000)
     log(`Open external result: ${result}`)
-    
+
     if (result === undefined) {
       log('URL opened successfully')
     }

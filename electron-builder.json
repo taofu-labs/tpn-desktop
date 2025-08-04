@@ -27,7 +27,7 @@
             "**/*"
         ]
     },
- 
+    "afterSign": "./build/aftersign_hook.js",
     "dmg": {
         "writeUpdateInfo": false
     },
