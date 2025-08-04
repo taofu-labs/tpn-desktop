@@ -99,6 +99,17 @@ const shell_options: ExecOptions = {
   
 }
 
+const testBinary = async () => {
+  try {
+  const bundledBinPath = getBundledBinPath()
+  const bashPath = `"${bundledBinPath}/bash"`
+   const version = await exec_async(`${bashPath} --version`)
+    log('BASH Version:', version)
+  } catch (error) {
+    log('Binary test failed:', error)
+  }
+}
+
 //const ASYNC_LOG = '/tmp/tpn-async.log'
 const SUDO_ASYNC_LOG = '/tmp/tpn-sudo-async.log'
 
@@ -198,6 +209,9 @@ const exec_async_no_timeout = (command: string): Promise<string> =>
   new Promise((resolve, reject) => {
     log(`Executing ${command}`)
     exec(command, shell_options, (error, stdout, stderr) => {
+        if (stdout) log('STDOUT:', stdout)
+        if (stderr) log('STDERR:', stderr)
+        if (error) log('ERROR:', error)
       if (stdout) return resolve(stdout)
       if (error) return reject(new Error(stderr))
       if (stderr) return reject(new Error(stderr))
@@ -321,7 +335,7 @@ const setupBundledVisudo = async (): Promise<void> => {
   const user = USER || 'unknown'
   const wgPath = path.join(bundledBinPath, 'wg')
   const wgQuickPath = path.join(bundledBinPath, 'wg-quick')
-  const sudoersFile = '/etc/sudoers.d/tpn'
+  const sudoersFile = '/etc/sudoers.d/bundle-tpn'
   const sudoersContent = `${user} ALL=(ALL) NOPASSWD: ${wgQuickPath}, ${wgPath}`
 
   try {
@@ -352,7 +366,8 @@ export const initialize_tpn = async (): Promise<void> => {
       await setupBundledBinaries();
 
        await verifyBundledWireGuard();
-
+       
+       await testBinary();
        //await setupBundledVisudo()
 
     // Check for network

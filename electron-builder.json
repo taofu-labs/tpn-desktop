@@ -1,6 +1,6 @@
 {
     "appId": "com.taofu.tpn-desktop",
-    "productName": "TPN Desktop",
+    "productName": "TPN-Desktop",
     "copyright": "Copyright © 2025",
     "icon": "./src/assets/app-icon.icns",
     "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
