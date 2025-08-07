@@ -80,6 +80,11 @@ Electron Builder is used to create distributable binaries for each platform.
 npm run dist:mac
 ```
 
+### macOS (x64 - Intel Chip)
+```bash
+npm run dist:mac-intel
+```
+
 - Set up `.env` with relevant variables, see `build/aftersign_hook.js`
 - Check entitlements in `build/entitlements.mac.plist`, the defauls should suffice
 
