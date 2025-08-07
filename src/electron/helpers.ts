@@ -11,6 +11,7 @@ const confirm = (message: string): Promise<boolean> =>
     dialog.showMessageBox({ 
         message, 
         buttons: ["Confirm", "Cancel"] 
+        
     }).then(({ response }) => {
         if (response === 0) return true
         return false
