@@ -15,6 +15,7 @@
     "preview": "vite preview",
     "transpile:electron": "tsc --project src/electron/tsconfig.json",
     "dist:mac": "npm run transpile:electron && npm run build && rm -rf dist && source .env.export && electron-builder --mac --arm64",
+    "dist:mac-intel": "npm run transpile:electron && npm run build && rm -rf dist && source .env.export && electron-builder --mac --x64",
     "dist:win": "npm run transpile:electron && npm run build && electron-builder --win --x64",
     "dist:linux": "npm run transpile:electron && npm run build && electron-builder --linux --x64",
     "test:e2e": "playwright test",
