@@ -1,4 +1,9 @@
 // Import types from electron backend
+interface CountryData {
+  name: string;
+  code: string;
+}
+
 interface ConnectionInfo {
   connected: boolean;
   originalIP: string;
@@ -27,7 +32,7 @@ interface DisconnectInfo {
 }
 
 type EventPayloadMapping = {
-  getCountries: string[];
+  getCountries: CountryData[];
   connectToCountry: ConnectionInfo;
   checkStatus: StatusInfo;
   disconnect: DisconnectInfo;

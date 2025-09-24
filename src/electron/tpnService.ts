@@ -12,6 +12,7 @@ import type {
   ConnectionInfo,
   ConnectionStatus,
   StatusInfo,
+  CountryData,
 } from "./tpn-cli.js";
 
 interface DisconnectInfo {
@@ -30,7 +31,7 @@ export const tpnService = {
     return await openExternal(url);
   },
   
-  async getCountries(): Promise<string[]> {
+  async getCountries(): Promise<CountryData[]> {
     return await listCountries();
   },
 

@@ -1,8 +1,10 @@
 /// <reference types="vite/client" />
 
+import type { CountryData } from "../electron/tpn-cli.js"
+
 interface ElectronAPI {
   openExternal: (url: string) => Promise<void>;
-  getCountries: () => Promise<string[]>;
+  getCountries: () => Promise<CountryData[]>;
   checkStatus: () => Promise<StatusInfo>;
   connectToCountry: (payload: ConnectionPayload) => Promise<ConnectionInfo>;
   disconnect: () => Promise<DisconnectInfo>;
