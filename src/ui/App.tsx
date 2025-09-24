@@ -118,10 +118,18 @@ function App() {
   useEffect(() => {
     let retryTimeout: NodeJS.Timeout | null = null;
     let cancelled = false;
+    let isFirstAttempt = true;
+    let retryCount = 0;
+    const maxRetries = 5; // Maximum 5 retry attempts
 
     async function fetchCountries() {
-      setIsInitializing(true);
+      // Only show initializing state on first attempt, not on retries
+      if (isFirstAttempt) {
+        setIsInitializing(true);
+        isFirstAttempt = false;
+      }
       setError(false);
+      
       try {
         if (window.electron) {
           const countries = await window.electron.getCountries();
@@ -136,6 +144,8 @@ function App() {
               })
             );
             setIsInitializing(false);
+            // Reset retry count on success
+            retryCount = 0;
             return;
           } else {
             setCountries([]);
@@ -148,11 +158,15 @@ function App() {
         setCountries([]);
       }
 
-      if (!cancelled) {
+      // Only retry if we haven't exceeded max retries
+      if (!cancelled && retryCount < maxRetries) {
+        retryCount++;
         retryTimeout = setTimeout(fetchCountries, 2000);
+      } else if (retryCount >= maxRetries) {
+        console.warn(`Failed to fetch countries after ${maxRetries} attempts. Stopped retrying.`);
       }
 
-      // setIsInitializing(false);
+      setIsInitializing(false);
     }
 
     // Initial fetch on load

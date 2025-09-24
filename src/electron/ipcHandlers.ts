@@ -1,5 +1,5 @@
 import { BrowserWindow } from "electron";
-import type { ConnectionInfo, ConnectionStatus, StatusInfo } from "./tpn-cli.js";
+import type { ConnectionInfo, ConnectionStatus, StatusInfo, CountryData } from "./tpn-cli.js";
 const { openExternal } = await import('./tpn-cli.js');
 
 
@@ -13,7 +13,7 @@ import { ipcMainHandler } from "./util.js";
 
 export interface IpcServices {
   tpnService: {
-    getCountries(): Promise<string[]>;
+    getCountries(): Promise<CountryData[]>;
     connect(country: string, lease?: number): Promise<ConnectionInfo>;
     checkStatus(): Promise<StatusInfo>;
     disconnect(): Promise<DisconnectInfo>;
