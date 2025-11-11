@@ -36,7 +36,7 @@ export interface CountryData {
 }
 
 interface ApiResponse {
-  miner_country_code_to_name: Record<string, string>
+  country_code_to_name: Record<string, string>
 }
 
 export interface ConnectionStatus {
@@ -462,81 +462,31 @@ export const cancel = async (): Promise<boolean> => {
   }
 }
 
-interface ValidatorEndpoint {
-  uid: number
-  ip: string
-}
-
 export const listCountries = async (): Promise<CountryData[]> => {
   try {
-    // First, get the list of validator endpoints
-    log('Fetching validator endpoints...')
-    const validators = await callApi<ValidatorEndpoint[]>(
-      'https://raw.githubusercontent.com/taofu-labs/sn65-validator-list/main/validators.json'
+    log('Fetching countries from TPN validator...')
+    
+    const response = await callApi<ApiResponse>(
+      'https://tpnvalidator47.taoprivatenetwork.com/protocol/stats'
     )
 
-    if (!validators || !Array.isArray(validators) || validators.length === 0) {
-      throw new Error('No validator endpoints available')
+    if (!response?.country_code_to_name) {
+      throw new Error('Invalid API response: missing country_code_to_name')
     }
 
-    log(`Found ${validators.length} validator endpoints, attempting simultaneous calls...`)
+    const countryEntries = Object.entries(response.country_code_to_name)
 
-    // Create promises for all endpoints with proper error handling
-    const endpointPromises = validators.map(async (validator) => {
-      const url = `http://${validator.ip}:3000/protocol/sync/stats`
-      
-      try {
-        const response = await callApi<ApiResponse>(url)
-        
-        if (!response?.miner_country_code_to_name) {
-          throw new Error(`Invalid response from validator ${validator.uid}`)
-        }
-        
-        const countryEntries = Object.entries(response.miner_country_code_to_name)
-        
-        if (countryEntries.length === 0) {
-          throw new Error(`No countries data from validator ${validator.uid}`)
-        }
-
-        const countries: CountryData[] = countryEntries.map(([code, name]) => ({
-          name: name,
-          code: code,
-        }))
-
-        log(`✓ Got ${countries.length} countries from validator ${validator.uid}`)
-        return countries
-      } catch (error) {
-        log(`✗ Validator ${validator.uid} failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
-        throw error
-      }
-    })
-
-    try {
-      // Race all promises - first successful response wins
-      const countries = await Promise.race(endpointPromises)
-      log(`Successfully retrieved countries list`)
-      return countries
-    } catch (raceError) {
-      // If race fails, it means the first promise to resolve was a rejection
-      // Let's wait a bit longer and try Promise.allSettled to get more info
-      log('Racing failed, checking all endpoints...')
-      
-      const results = await Promise.allSettled(endpointPromises)
-      const successful = results.find(result => result.status === 'fulfilled')
-      
-      if (successful && successful.status === 'fulfilled') {
-        log('Found successful response after race failure')
-        return successful.value
-      }
-      
-      // All failed - collect error messages for better debugging
-      const errors = results
-        .filter(result => result.status === 'rejected')
-        .map(result => (result as PromiseRejectedResult).reason.message)
-        .join('; ')
-      
-      throw new Error(`All validator endpoints failed: ${errors}`)
+    if (countryEntries.length === 0) {
+      throw new Error('No countries found')
     }
+
+    const countries: CountryData[] = countryEntries.map(([code, name]) => ({
+      name: name,
+      code: code,
+    }))
+
+    log(`Successfully fetched ${countries.length} countries`)
+    return countries
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
