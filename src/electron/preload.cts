@@ -1,4 +1,5 @@
 const electron = require("electron")
+import type { CountryData } from "./tpn-cli.js"
 
 
 // Expose APIs to renderer process
@@ -7,7 +8,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
     return await ipcInvoke("openExternal", url);
   },
 
-  getCountries: async (): Promise<string[]> => {
+  getCountries: async (): Promise<CountryData[]> => {
     return await ipcInvoke("getCountries");
   },
 

@@ -36,7 +36,7 @@ export interface CountryData {
 }
 
 interface ApiResponse {
-  miner_country_code_to_name: Record<string, string>
+  country_code_to_name: Record<string, string>
 }
 
 export interface ConnectionStatus {
@@ -462,41 +462,38 @@ export const cancel = async (): Promise<boolean> => {
   }
 }
 
-export const listCountries: any = async (): Promise<CountryData[]> => {
+export const listCountries = async (): Promise<CountryData[]> => {
   try {
-    const apiResponse = await callApi<ApiResponse>(
-      'http://34.130.136.222:3000/protocol/sync/stats',
+    log('Fetching countries from TPN validator...')
+    
+    const response = await callApi<ApiResponse>(
+      'https://tpnvalidator47.taoprivatenetwork.com/protocol/stats'
     )
 
-    if (!apiResponse?.miner_country_code_to_name) {
-      throw new Error(
-        'Invalid API response: missing miner_country_code_to_name',
-      )
+    if (!response?.country_code_to_name) {
+      throw new Error('Invalid API response: missing country_code_to_name')
     }
 
-    const countryEntries = Object.entries(
-      apiResponse.miner_country_code_to_name,
-    )
+    const countryEntries = Object.entries(response.country_code_to_name)
 
     if (countryEntries.length === 0) {
       throw new Error('No countries found')
     }
 
-    const countries: CountryData[] = countryEntries.map(([code, name]) => {
-      return {
-        name: name,
-        code: code,
-      }
-    })
+    const countries: CountryData[] = countryEntries.map(([code, name]) => ({
+      name: name,
+      code: code,
+    }))
 
-  log(`Successfully fetched ${countries.length} countries from API`)
-
+    log(`Successfully fetched ${countries.length} countries`)
     return countries
+
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : 'Unknown error occurred'
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
     log(`Failed to fetch countries: ${errorMessage}`)
-    throw new Error(`Could not retrieve countries list: ${errorMessage}`)
+    
+    // Always throw the error so frontend can handle it properly
+    throw new Error(`Unable to load countries: ${errorMessage}`)
   }
 }
 
