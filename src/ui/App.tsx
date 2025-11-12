@@ -219,7 +219,11 @@ function App() {
 
   // Periodically check connection status (only after initial load)
   useEffect(() => {
+<<<<<<< HEAD
     if (isInitializing || !connected) return; //  Don't start periodic checks until initial load is complete
+=======
+    if (isInitializing || !connected) return; // Don't start periodic checks until initial load is complete
+>>>>>>> 67d21fc3fb7ff7bf0a819ec11e354a58ff11c306
 
     const checkStatus = async () => {
       try {

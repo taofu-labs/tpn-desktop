@@ -25,6 +25,7 @@ dist-ssr
 *.sln
 *.sw?
 .env
+<<<<<<< HEAD
 .*
 
 # Media files (videos, large images)
@@ -36,3 +37,6 @@ dist-ssr
 *.MP4
 IMG_*.MOV
 IMG_*.mov
+=======
+.*
+>>>>>>> 67d21fc3fb7ff7bf0a819ec11e354a58ff11c306
