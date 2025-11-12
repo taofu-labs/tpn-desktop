@@ -27,4 +27,12 @@ dist-ssr
 .env
 .*
 
-IMG_2462.MOV
+# Media files (videos, large images)
+*.MOV
+*.mov
+*.mp4
+*.avi
+*.mkv
+*.MP4
+IMG_*.MOV
+IMG_*.mov
