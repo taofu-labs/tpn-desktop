@@ -26,3 +26,13 @@ dist-ssr
 *.sw?
 .env
 .*
+
+# Media files (videos, large images)
+*.MOV
+*.mov
+*.mp4
+*.avi
+*.mkv
+*.MP4
+IMG_*.MOV
+IMG_*.mov
