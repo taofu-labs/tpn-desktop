@@ -242,7 +242,7 @@ export const initialize_tpn = async (): Promise<void> => {
       if (!online) return log(`Skipping TPN update because we are offline`)
       if (skipupdate) return log(`Skipping update due to environment variable`)
       log(`Updating TPN...`)
-      const result = await exec_async(`tpn update --silent`).catch((e) => e)
+      const result = await exec_async(`${tpn} update --silent`).catch((e) => e)
       log(`Update result: `, result)
     }
 
